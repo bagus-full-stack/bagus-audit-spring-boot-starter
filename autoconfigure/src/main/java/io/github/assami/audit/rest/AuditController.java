@@ -47,12 +47,14 @@ public class AuditController {
     @PreAuthorize("hasRole('AUDIT_WRITE') or hasRole('AUDIT_ADMIN')")
     @ResponseStatus(HttpStatus.CREATED)
     public AuditLogResponse create(@Valid @RequestBody CreateAuditRequest req) {
+        String actor = currentActor();
         AuditLog saved = service.create(
                 AuditLog.builder()
                         .action(req.action())
                         .level(req.level() != null ? req.level() : AuditLevel.INFO)
                         .payload(req.payload())
-                        .createdBy(currentActor())
+                        .createdBy(actor)
+                        .lastModifiedBy(actor)
         );
         return AuditLogResponse.from(saved);
     }
@@ -64,12 +66,14 @@ public class AuditController {
                  produces = MediaType.APPLICATION_JSON_VALUE)
     @PreAuthorize("hasRole('AUDIT_WRITE') or hasRole('AUDIT_ADMIN')")
     public ResponseEntity<BatchAuditResponse> createBatch(@Valid @RequestBody BatchAuditRequest req) {
+        String actor = currentActor();
         List<AuditLog.Builder> builders = req.entries().stream()
                 .map(e -> AuditLog.builder()
                         .action(e.action())
                         .level(e.level() != null ? e.level() : AuditLevel.INFO)
                         .payload(e.payload())
-                        .createdBy(currentActor()))
+                        .createdBy(actor)
+                        .lastModifiedBy(actor))
                 .toList();
 
         List<AuditLog> saved = service.createBatch(builders);
@@ -173,6 +177,7 @@ public class AuditController {
             AuditLevel level,
             String payload,
             String createdBy,
+            String lastModifiedBy,
             Instant createdAt,
             Instant updatedAt,
             Long version,
@@ -181,7 +186,7 @@ public class AuditController {
         static AuditLogResponse from(AuditLog l) {
             return new AuditLogResponse(
                     l.getId(), l.getTenantId(), l.getServiceName(), l.getAction(),
-                    l.getLevel(), l.getPayload(), l.getCreatedBy(),
+                    l.getLevel(), l.getPayload(), l.getCreatedBy(), l.getLastModifiedBy(),
                     l.getCreatedAt(), l.getUpdatedAt(), l.getVersion(),
                     l.isGdprErased()
             );

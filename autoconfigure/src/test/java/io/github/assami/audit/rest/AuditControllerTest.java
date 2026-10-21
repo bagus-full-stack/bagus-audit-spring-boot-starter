@@ -117,7 +117,8 @@ class AuditControllerTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"action\":\"ACTOR_TEST\",\"actor\":\"mallory\"}"))
                 .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.createdBy").value("alice"));
+                .andExpect(jsonPath("$.createdBy").value("alice"))
+                .andExpect(jsonPath("$.lastModifiedBy").value("alice"));
     }
 
     // ── Batch ────────────────────────────────────────────────────────────────
@@ -169,7 +170,8 @@ class AuditControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.gdprErased").value(true))
                 .andExpect(jsonPath("$.payload").isEmpty())
-                .andExpect(jsonPath("$.createdBy").isEmpty());
+                .andExpect(jsonPath("$.createdBy").isEmpty())
+                .andExpect(jsonPath("$.lastModifiedBy").isEmpty());
     }
 
     // ── Bad cursor ───────────────────────────────────────────────────────────
