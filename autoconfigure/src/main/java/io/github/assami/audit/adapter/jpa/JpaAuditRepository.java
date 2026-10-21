@@ -6,10 +6,13 @@ import io.github.assami.audit.model.AuditLog;
 import io.github.assami.audit.model.AuditPage;
 import io.github.assami.audit.model.AuditQuery;
 import io.github.assami.audit.port.AuditRepository;
+import jakarta.persistence.criteria.Predicate;
 import jakarta.transaction.Transactional;
-import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.domain.Specification;
 
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
@@ -22,6 +25,8 @@ import java.util.Optional;
  */
 @Transactional
 public class JpaAuditRepository implements AuditRepository {
+
+    private static final Sort NEWEST_FIRST = Sort.by(Sort.Direction.DESC, "createdAt", "id");
 
     private final AuditLogJpaRepository jpa;
 
@@ -47,28 +52,10 @@ public class JpaAuditRepository implements AuditRepository {
 
     @Override
     public AuditPage findAll(AuditQuery query) {
-        // Decode cursor if present
-        Instant cursorTs = null;
-        String  cursorId = null;
-        if (query.getCursor() != null) {
-            AuditCursor c = AuditCursor.decode(query.getCursor());
-            cursorTs = c.createdAt();
-            cursorId = c.id();
-        }
-
         // Fetch pageSize+1 to detect next page
         int fetchSize = query.getPageSize() + 1;
-        List<AuditLogEntity> rows = jpa.findPageWithKeyset(
-                query.getTenantId(),
-                query.getServiceName(),
-                query.getAction(),
-                query.getLevel(),
-                query.getFrom(),
-                query.getTo(),
-                cursorTs,
-                cursorId,
-                PageRequest.of(0, fetchSize)
-        );
+        List<AuditLogEntity> rows = jpa.findBy(matching(query),
+                q -> q.sortBy(NEWEST_FIRST).limit(fetchSize).all());
 
         boolean hasNext = rows.size() > query.getPageSize();
         List<AuditLog> page = rows.subList(0, Math.min(rows.size(), query.getPageSize()))
@@ -81,6 +68,30 @@ public class JpaAuditRepository implements AuditRepository {
         }
 
         return AuditPage.of(page, nextCursor);
+    }
+
+    /**
+     * Only the filters that were given become predicates. A fixed {@code (:p IS NULL OR col = :p)}
+     * query gets one cached plan for every combination, which cannot use the tenant index well.
+     */
+    private static Specification<AuditLogEntity> matching(AuditQuery query) {
+        return (root, cq, cb) -> {
+            List<Predicate> p = new ArrayList<>();
+            if (query.getTenantId() != null)    p.add(cb.equal(root.get("tenantId"), query.getTenantId()));
+            if (query.getServiceName() != null) p.add(cb.equal(root.get("serviceName"), query.getServiceName()));
+            if (query.getAction() != null)      p.add(cb.equal(root.get("action"), query.getAction()));
+            if (query.getLevel() != null)       p.add(cb.equal(root.get("level"), query.getLevel()));
+            if (query.getFrom() != null)        p.add(cb.greaterThanOrEqualTo(root.<Instant>get("createdAt"), query.getFrom()));
+            if (query.getTo() != null)          p.add(cb.lessThanOrEqualTo(root.<Instant>get("createdAt"), query.getTo()));
+            if (query.getCursor() != null) {
+                AuditCursor c = AuditCursor.decode(query.getCursor());
+                p.add(cb.or(
+                        cb.lessThan(root.<Instant>get("createdAt"), c.createdAt()),
+                        cb.and(cb.equal(root.get("createdAt"), c.createdAt()),
+                               cb.lessThan(root.<String>get("id"), c.id()))));
+            }
+            return cb.and(p.toArray(new Predicate[0]));
+        };
     }
 
     @Override

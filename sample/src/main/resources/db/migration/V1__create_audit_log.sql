@@ -32,9 +32,9 @@ CREATE INDEX idx_audit_log_service_name
     ON audit_log (service_name)
     WHERE deleted_at IS NULL;
 
--- Multi-tenancy filter
-CREATE INDEX idx_audit_log_tenant_id
-    ON audit_log (tenant_id)
+-- Multi-tenancy filter + keyset order: one tenant's newest entries, no sort step
+CREATE INDEX idx_audit_log_tenant_keyset
+    ON audit_log (tenant_id, created_at DESC, id DESC)
     WHERE deleted_at IS NULL;
 
 -- GDPR scheduled erasure scan

@@ -1,6 +1,7 @@
 package io.github.assami.audit.adapter.jpa;
 
 import io.github.assami.audit.exception.AuditNotFoundException;
+import io.github.assami.audit.model.AuditLevel;
 import io.github.assami.audit.model.AuditLog;
 import io.github.assami.audit.model.AuditPage;
 import io.github.assami.audit.model.AuditQuery;
@@ -90,6 +91,23 @@ class JpaAuditRepositoryTest {
         AuditPage page = repo.findAll(AuditQuery.builder().tenantId("t1").pageSize(10).build());
 
         assertThat(page.content()).extracting(AuditLog::getAction).containsExactly("A");
+    }
+
+    @Test
+    void findAll_combinesFilters_andTimeRange() {
+        Instant t = Instant.parse("2026-03-01T10:00:00Z");
+        repo.save(log("LOGIN").level(AuditLevel.ERROR).createdAt(t).build());
+        repo.save(log("LOGIN").level(AuditLevel.INFO).createdAt(t).build());
+        repo.save(log("LOGIN").level(AuditLevel.ERROR).createdAt(t.plusSeconds(3600)).build());
+        repo.save(log("LOGOUT").level(AuditLevel.ERROR).createdAt(t).build());
+        flushAndClear();
+
+        AuditPage page = repo.findAll(AuditQuery.builder()
+                .action("LOGIN").level(AuditLevel.ERROR)
+                .from(t.minusSeconds(1)).to(t.plusSeconds(60)).pageSize(10).build());
+
+        assertThat(page.content()).hasSize(1);
+        assertThat(page.hasNext()).isFalse();
     }
 
     @Test

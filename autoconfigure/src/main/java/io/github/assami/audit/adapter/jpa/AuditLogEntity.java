@@ -18,7 +18,7 @@ import java.time.Instant;
     indexes = {
         @Index(name = "idx_audit_log_keyset",       columnList = "created_at DESC, id DESC"),
         @Index(name = "idx_audit_log_service_name", columnList = "service_name"),
-        @Index(name = "idx_audit_log_tenant_id",    columnList = "tenant_id")
+        @Index(name = "idx_audit_log_tenant_keyset", columnList = "tenant_id, created_at DESC, id DESC")
     }
 )
 // Hibernate binds (id, version) for a @Version entity, so the SQL needs both parameters.
