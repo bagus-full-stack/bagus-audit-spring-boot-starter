@@ -1,0 +1,17 @@
+# Build output
+target/
+.flattened-pom.xml
+
+# IDE
+.idea/
+*.iml
+.vscode/
+
+# Tooling output
+graphify-out/
+.token-optimizer-audit-*/
+
+# Logs / OS
+*.log
+.DS_Store
+Thumbs.db

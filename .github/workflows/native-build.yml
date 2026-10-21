@@ -1,0 +1,31 @@
+name: GraalVM Native Build
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  native:
+    name: Native Image Build
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up GraalVM JDK 21
+        uses: graalvm/setup-graalvm@v1
+        with:
+          java-version: '21'
+          distribution: graalvm-community
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build native image (sample app)
+        run: ./mvnw -B -pl sample native:compile -Pnative --no-transfer-progress
+
+      - name: Smoke-test native binary
+        run: |
+          ./sample/target/audit-sample &
+          sleep 5
+          curl -sf http://localhost:8080/actuator/health | grep '"status":"UP"'
+          kill %1

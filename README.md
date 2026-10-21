@@ -1,0 +1,212 @@
+# Audit Spring Boot Starter
+
+A Spring Boot 3 starter that adds an audit-log REST API to any service: write audit entries,
+query them with cursor pagination, soft-delete them and erase personal data on request (GDPR).
+Storage is pluggable (JPA, or an in-memory fallback for development).
+
+- Java 21, Spring Boot 3.3.4
+- Apache License 2.0
+- Status: `1.0.0-SNAPSHOT`, not yet published to Maven Central (see [Status](#status-and-known-limits))
+
+## Contents
+
+- [Features](#features)
+- [Modules](#modules)
+- [Quick start](#quick-start)
+- [REST API](#rest-api)
+- [Security](#security)
+- [Multi-tenancy](#multi-tenancy)
+- [GDPR erasure](#gdpr-erasure)
+- [Storage](#storage)
+- [Configuration](#configuration)
+- [Events, metrics and health](#events-metrics-and-health)
+- [Error format](#error-format)
+- [Build and test](#build-and-test)
+- [Status and known limits](#status-and-known-limits)
+- [License](#license)
+
+## Features
+
+- REST endpoints to create (single or batch), list, read and delete audit entries
+- Cursor (keyset) pagination on `(created_at DESC, id DESC)`: stable under concurrent writes
+- Role-based access with OAuth2 JWT: `AUDIT_READ`, `AUDIT_WRITE`, `AUDIT_ADMIN`
+- The actor of an entry is the authenticated user, never a value sent by the client
+- Optional multi-tenancy: tenant from a header, a JWT claim or the sub-domain
+- Soft delete (`deleted_at`) and GDPR erasure of personal fields
+- Spring application events, a Micrometer gauge and an Actuator health indicator
+- RFC 9457 problem-detail error responses
+- Hexagonal design: the `AuditRepository` port has a JPA adapter and an in-memory adapter
+
+## Modules
+
+| Module | Purpose |
+|---|---|
+| `autoconfigure` | All the code: model, service, REST controller, security, tenancy, JPA and in-memory adapters, auto-configuration |
+| `starter` | Core starter: autoconfigure + web, security, actuator, validation. Uses the in-memory repository |
+| `starter-jpa` | `starter` + Spring Data JPA. Persists entries in the `audit_log` table |
+| `starter-full` | `starter-jpa` + Resilience4j, Caffeine, Spring Retry and AOP (bundled for future use, not used by the code today) |
+| `sample` | Example application with H2 (default) and PostgreSQL (`prod` profile), Flyway migration included |
+
+Maven coordinates (group `io.github.assami`): `audit-starter`, `audit-starter-jpa`, `audit-starter-full`.
+
+## Quick start
+
+The project is not on Maven Central yet. Install it into your local repository first:
+
+```bash
+git clone https://github.com/bagus-full-stack/bagus-audit-spring-boot-starter.git
+cd bagus-audit-spring-boot-starter
+./mvnw install
+```
+
+Then add the starter to your application:
+
+```xml
+<dependency>
+  <groupId>io.github.assami</groupId>
+  <artifactId>audit-starter-jpa</artifactId>
+  <version>1.0.0-SNAPSHOT</version>
+</dependency>
+```
+
+Minimal `application.yml`:
+
+```yaml
+audit:
+  name: order-service        # written as service_name on every entry
+  security:
+    jwk-set-uri: https://issuer.example.com/.well-known/jwks.json   # only if your app defines no JwtDecoder
+```
+
+Create the `audit_log` table with the DDL in
+[`sample/src/main/resources/db/migration/V1__create_audit_log.sql`](sample/src/main/resources/db/migration/V1__create_audit_log.sql)
+(Flyway format; adapt it for Liquibase or another tool). The sample sets `ddl-auto: validate`.
+
+## REST API
+
+Base path: `/api/audit` (change it with `audit.api.base-path`).
+
+| Method and path | Role | Result |
+|---|---|---|
+| `POST /` | `AUDIT_WRITE` or `AUDIT_ADMIN` | `201` with the created entry |
+| `POST /batch` | `AUDIT_WRITE` or `AUDIT_ADMIN` | `201`, 1 to 500 entries saved in one transaction |
+| `GET /` | `AUDIT_READ` or `AUDIT_ADMIN` | `200` page of entries |
+| `GET /{id}` | `AUDIT_READ` or `AUDIT_ADMIN` | `200` entry, or `404` |
+| `DELETE /{id}` | `AUDIT_ADMIN` | `204`, soft delete |
+| `DELETE /{id}/personal-data` | `AUDIT_ADMIN` | `204`, GDPR erasure |
+
+Create an entry:
+
+```bash
+curl -X POST http://localhost:8080/api/audit \
+  -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
+  -d '{"action":"ORDER_PLACED","level":"INFO","payload":"{\"orderId\":42}"}'
+```
+
+Request fields: `action` (required, max 255), `level` (`DEBUG`, `INFO`, `WARN`, `ERROR`, `CRITICAL`; default `INFO`),
+`payload` (free text, max 65 536 characters). The batch body is `{"entries":[ ... ]}`.
+
+List entries (all filters are optional):
+
+```
+GET /api/audit?serviceName=order-service&action=ORDER_PLACED&level=INFO
+               &from=2026-01-01T00:00:00Z&to=2026-02-01T00:00:00Z&size=50&cursor=...
+```
+
+`size` is 1 to 200 (default 20). The response is
+`{"content":[...],"nextCursor":"...","hasNext":true}`. Pass `nextCursor` as `cursor` to get the next page.
+Cursors are opaque; a malformed one gives `400`.
+
+## Security
+
+- Endpoints are protected by a dedicated filter chain on the base path, plus `@PreAuthorize` on each method.
+- Authentication is an OAuth2 resource server (JWT). Roles are read as `ROLE_AUDIT_READ`, `ROLE_AUDIT_WRITE`, `ROLE_AUDIT_ADMIN`.
+- The `JwtDecoder` comes from your application. If you define none, set `audit.security.jwk-set-uri`.
+  With neither, the application starts, logs a warning, and every audit request is rejected.
+- Spring Boot drops its default security once any `SecurityFilterChain` exists. The starter adds a fallback chain
+  (every other route requires authentication, HTTP basic and form login) to keep that default. Define your own chains
+  with an `@Order` to override it.
+- CSRF is disabled on the audit path (stateless JWT API).
+
+## Multi-tenancy
+
+Disabled by default. Enable it with `audit.tenancy.enabled=true`.
+
+| Strategy | Tenant comes from |
+|---|---|
+| `HEADER` (default) | Request header `audit.tenancy.header-name` (default `X-Tenant-ID`). The caller chooses the value: use it only behind a gateway that sets it |
+| `JWT_CLAIM` | Claim `audit.tenancy.jwt-claim` (default `tenant_id`) of the authenticated JWT |
+| `SUBDOMAIN` | First label of the host name (`acme.example.com` gives `acme`) |
+
+When a tenant is resolved, the service forces it on every operation: new entries get it, list queries are filtered by it
+(a `tenantId` request parameter is ignored), and reading, deleting or erasing another tenant's entry returns `404`.
+With `audit.tenancy.enforce-isolation=true`, an audit request without a tenant is rejected with `400`.
+The filter only applies to the audit base path.
+
+## GDPR erasure
+
+`DELETE /api/audit/{id}/personal-data` sets `payload`, `created_by` and `last_modified_by` to `null` and records
+`gdpr_erased_at`. The entry itself stays, so the audit trail keeps its shape.
+
+To run your own logic first (for example, purge a copy in another system), declare a bean implementing `AuditGdprEraser`:
+
+```java
+@Component
+class MyEraser implements AuditGdprEraser {
+    @Override public void beforeErase(String auditLogId) { /* ... */ }
+}
+```
+
+## Storage
+
+- **JPA** (`starter-jpa`): table `audit_log`, soft delete with `@SQLDelete` and `@SQLRestriction`, optimistic `version` column.
+- **In-memory** (`starter` only): used when no other `AuditRepository` bean exists. All data is lost on restart and
+  memory grows without limit. Development only.
+- To use another store, define your own `AuditRepository` bean (the port is in `io.github.assami.audit.port`).
+
+## Configuration
+
+| Property | Default | Meaning |
+|---|---|---|
+| `audit.enabled` | `true` | Master switch for the whole starter |
+| `audit.name` | `unknown-service` | Written as `service_name` on every entry |
+| `audit.api.base-path` | `/api/audit` | Base path of the REST API |
+| `audit.security.jwk-set-uri` | none | JWKS URL used when the application defines no `JwtDecoder` |
+| `audit.tenancy.enabled` | `false` | Turn multi-tenancy on |
+| `audit.tenancy.strategy` | `HEADER` | `HEADER`, `JWT_CLAIM` or `SUBDOMAIN` |
+| `audit.tenancy.header-name` | `X-Tenant-ID` | Header read by `HEADER` |
+| `audit.tenancy.jwt-claim` | `tenant_id` | Claim read by `JWT_CLAIM` |
+| `audit.tenancy.enforce-isolation` | `false` | Reject audit requests that have no tenant |
+
+## Events, metrics and health
+
+- Application events: `AuditLogCreatedEvent`, `AuditLogDeletedEvent`, `AuditLogErasedEvent`.
+- Micrometer gauge `audit.repository.size` (non-deleted entries). It runs a `COUNT(*)` on each scrape.
+- Actuator health indicator `auditHealthIndicator`: a primary-key lookup, cheap on large tables.
+
+## Error format
+
+Errors use RFC 9457 `application/problem+json` with extra `errorCode` and `timestamp` fields.
+Examples: `404` unknown entry, `400` invalid cursor or missing tenant, `401` no valid token, `403` missing role.
+
+## Build and test
+
+```bash
+./mvnw verify
+```
+
+Requires JDK 21 or newer. The suite has 35 tests: service logic, the in-memory and JPA (H2) repositories,
+the tenant filter, and the REST layer with a mocked `JwtDecoder`.
+
+## Status and known limits
+
+- Version is `1.0.0-SNAPSHOT`; the API may still change.
+- The JPA adapter is tested on H2 only, not on PostgreSQL.
+- The GraalVM native-image hints (`AuditRuntimeHints`) have not been validated with a native build.
+- Not implemented yet: rate limiting, caching, a MongoDB adapter (planned for 1.1, see [CHANGELOG](CHANGELOG.md)).
+- Listing with several optional filters on a very large table is not index-tuned; add an index on
+  `(tenant_id, created_at DESC, id DESC)` if you filter by tenant at scale.
+
+## License
+
+Apache License 2.0, see [LICENSE](LICENSE).

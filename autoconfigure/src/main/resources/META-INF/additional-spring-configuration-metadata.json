@@ -1,0 +1,134 @@
+{
+  "properties": [
+    {
+      "name": "audit.enabled",
+      "type": "java.lang.Boolean",
+      "description": "Master switch. Set to false to disable the entire audit starter.",
+      "defaultValue": true
+    },
+    {
+      "name": "audit.name",
+      "type": "java.lang.String",
+      "description": "Logical name of the service using this starter. Written as service_name on every log entry.",
+      "defaultValue": "unknown-service"
+    },
+    {
+      "name": "audit.security.enabled",
+      "type": "java.lang.Boolean",
+      "description": "Enable role-based security on the audit endpoints.",
+      "defaultValue": true
+    },
+    {
+      "name": "audit.security.roles.read",
+      "type": "java.lang.String",
+      "description": "Spring Security role required to read audit logs.",
+      "defaultValue": "ROLE_AUDIT_READ"
+    },
+    {
+      "name": "audit.security.roles.write",
+      "type": "java.lang.String",
+      "description": "Spring Security role required to create audit logs.",
+      "defaultValue": "ROLE_AUDIT_WRITE"
+    },
+    {
+      "name": "audit.security.roles.admin",
+      "type": "java.lang.String",
+      "description": "Spring Security role required for admin operations (delete, GDPR erasure).",
+      "defaultValue": "ROLE_AUDIT_ADMIN"
+    },
+    {
+      "name": "audit.tenancy.enabled",
+      "type": "java.lang.Boolean",
+      "description": "Enable multi-tenancy support.",
+      "defaultValue": false
+    },
+    {
+      "name": "audit.tenancy.strategy",
+      "type": "io.github.assami.audit.tenancy.TenantStrategy",
+      "description": "Strategy for resolving the current tenant: HEADER, JWT_CLAIM, or SUBDOMAIN.",
+      "defaultValue": "HEADER"
+    },
+    {
+      "name": "audit.tenancy.header-name",
+      "type": "java.lang.String",
+      "description": "HTTP header name used when strategy=HEADER.",
+      "defaultValue": "X-Tenant-ID"
+    },
+    {
+      "name": "audit.tenancy.jwt-claim",
+      "type": "java.lang.String",
+      "description": "JWT claim name used when strategy=JWT_CLAIM.",
+      "defaultValue": "tenant_id"
+    },
+    {
+      "name": "audit.tenancy.enforce-isolation",
+      "type": "java.lang.Boolean",
+      "description": "Reject requests with a missing tenant identifier (HTTP 400) when enabled.",
+      "defaultValue": false
+    },
+    {
+      "name": "audit.rate-limit.enabled",
+      "type": "java.lang.Boolean",
+      "description": "Enable rate limiting on audit write operations.",
+      "defaultValue": false
+    },
+    {
+      "name": "audit.rate-limit.limit",
+      "type": "java.lang.Long",
+      "description": "Maximum number of write requests allowed per window.",
+      "defaultValue": 1000
+    },
+    {
+      "name": "audit.rate-limit.window",
+      "type": "java.time.Duration",
+      "description": "Sliding window duration for rate limiting.",
+      "defaultValue": "PT1M"
+    },
+    {
+      "name": "audit.rate-limit.distributed",
+      "type": "java.lang.Boolean",
+      "description": "Use Redis for distributed rate limiting (requires spring-boot-starter-data-redis).",
+      "defaultValue": false
+    },
+    {
+      "name": "audit.api.base-path",
+      "type": "java.lang.String",
+      "description": "Base path for the audit REST API.",
+      "defaultValue": "/api/audit"
+    },
+    {
+      "name": "audit.api.bulk-atomic",
+      "type": "java.lang.Boolean",
+      "description": "When true, the batch endpoint is fully atomic (all-or-nothing). When false, partial success returns 207.",
+      "defaultValue": false
+    },
+    {
+      "name": "audit.soft-delete.enabled",
+      "type": "java.lang.Boolean",
+      "description": "Use soft delete (sets deleted_at) instead of hard delete.",
+      "defaultValue": true
+    },
+    {
+      "name": "audit.async.enabled",
+      "type": "java.lang.Boolean",
+      "description": "Process audit write operations asynchronously in a dedicated thread pool.",
+      "defaultValue": false
+    },
+    {
+      "name": "audit.cache.enabled",
+      "type": "java.lang.Boolean",
+      "description": "Enable local Caffeine cache for audit read queries.",
+      "defaultValue": false
+    }
+  ],
+  "hints": [
+    {
+      "name": "audit.tenancy.strategy",
+      "values": [
+        { "value": "HEADER",    "description": "Read tenant from X-Tenant-ID header (or custom header-name)." },
+        { "value": "JWT_CLAIM", "description": "Extract tenant from a JWT claim." },
+        { "value": "SUBDOMAIN", "description": "Derive tenant from the first hostname segment." }
+      ]
+    }
+  ]
+}
