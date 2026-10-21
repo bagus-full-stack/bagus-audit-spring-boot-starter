@@ -50,6 +50,18 @@ class JpaAuditRepositoryTest {
     }
 
     @Test
+    void gdprErase_bumpsTheVersion() {
+        AuditLog saved = repo.save(log("A").payload("p").build());
+        flushAndClear();
+        long before = repo.findById(saved.getId()).orElseThrow().getVersion();
+
+        repo.gdprErase(saved.getId());
+        flushAndClear();
+
+        assertThat(repo.findById(saved.getId()).orElseThrow().getVersion()).isEqualTo(before + 1);
+    }
+
+    @Test
     void purgeDeleted_removesSoftDeletedRowsOlderThanTheCutoff_andKeepsTheRest() {
         AuditLog gone = repo.save(log("GONE").build());
         AuditLog live = repo.save(log("LIVE").build());

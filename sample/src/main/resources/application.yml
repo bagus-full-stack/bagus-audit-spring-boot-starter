@@ -85,3 +85,5 @@ spring:
 audit:
   security:
     jwk-set-uri: ${JWK_SET_URI}
+    issuer: ${JWT_ISSUER:}            # iss claim the tokens must carry; empty skips the check
+    audience: ${JWT_AUDIENCE:}        # aud value the tokens must carry; empty skips the check

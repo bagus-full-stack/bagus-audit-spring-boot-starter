@@ -40,6 +40,9 @@ services:
       DATABASE_USERNAME: audit
       DATABASE_PASSWORD: audit
       JWK_SET_URI: http://mock-oauth2:8080/default/jwks
+      # The mock sets iss from the host the token was requested on (localhost:8081 from your machine).
+      JWT_ISSUER: http://localhost:8081/default
+      JWT_AUDIENCE: audit-api
       AUDIT_TENANCY_ENABLED: "true"        # tenant comes from the JWT claim tenant_id
     ports:
       - "8080:8080"

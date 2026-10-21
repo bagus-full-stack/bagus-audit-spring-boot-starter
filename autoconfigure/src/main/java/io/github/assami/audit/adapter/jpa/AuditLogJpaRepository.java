@@ -21,7 +21,7 @@ public interface AuditLogJpaRepository
     @Query("""
            UPDATE AuditLogEntity a
            SET a.payload = NULL, a.createdBy = NULL, a.lastModifiedBy = NULL,
-               a.gdprErasedAt = :erasedAt, a.updatedAt = :erasedAt
+               a.gdprErasedAt = :erasedAt, a.updatedAt = :erasedAt, a.version = a.version + 1
            WHERE a.id = :id
            """)
     void gdprErase(@Param("id") String id, @Param("erasedAt") Instant erasedAt);

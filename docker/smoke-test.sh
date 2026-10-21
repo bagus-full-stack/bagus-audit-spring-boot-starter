@@ -58,6 +58,7 @@ done
 echo "== security"
 check "no token -> 401"          401 "$(status GET "$API" "")"
 check "garbage token -> 401"     401 "$(status GET "$API" "not-a-jwt")"
+check "valid signature, other audience -> 401" 401 "$(status GET "$API" "$(token other-app)")"
 check "reader cannot POST -> 403" 403 "$(status POST "$API" "$READER" '{"action":"X"}')"
 check "writer cannot GET -> 403"  403 "$(status GET "$API" "$WRITER")"
 check "writer cannot DELETE -> 403" 403 "$(status DELETE "$API/some-id" "$WRITER")"

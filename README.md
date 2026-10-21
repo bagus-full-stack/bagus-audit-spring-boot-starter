@@ -122,7 +122,17 @@ Cursors are opaque; a malformed one gives `400`.
 - Authentication is an OAuth2 resource server (JWT). Roles are read as `ROLE_AUDIT_READ`, `ROLE_AUDIT_WRITE`, `ROLE_AUDIT_ADMIN`.
 - The `JwtDecoder` comes from your application. If you define none, set `audit.security.jwk-set-uri`.
   That decoder checks signature and expiry only; also set `audit.security.issuer` and `audit.security.audience`,
-  or it accepts any token the identity provider signed for another application.
+  or it accepts any token the identity provider signed for another application (a warning is logged at startup).
+- `audit.security.roles-claim` names the claim that holds the roles. It is read by its exact name first, then as a
+  dotted path into nested objects. A list or a space-separated string both work.
+
+| Identity provider | `roles-claim` | Note |
+|---|---|---|
+| Default / most custom setups | `roles` | |
+| Keycloak (realm roles) | `realm_access.roles` | nested path |
+| Auth0 | your namespaced claim, e.g. `https://app.example.com/roles` | exact name, dots allowed |
+
+  Only the mock server in `docker-compose.yml` has been tested; check your provider's real tokens before relying on it.
   With neither, the application starts, logs a warning, and every audit request is rejected.
 - Spring Boot drops its default security once any `SecurityFilterChain` exists. The starter adds a fallback chain
   (every other route requires authentication, HTTP basic and form login) to keep that default. Define your own chains
@@ -220,7 +230,7 @@ PostgreSQL 16 through Testcontainers; they are skipped when Docker is not runnin
 ```bash
 docker build --target test .        # whole test suite in a container
 docker compose up -d --build        # PostgreSQL + mock OAuth2 (:8081) + sample app (:8080)
-./docker/smoke-test.sh              # 27 end-to-end checks (needs bash and curl)
+./docker/smoke-test.sh              # 28 end-to-end checks (needs bash and curl)
 docker compose down -v
 ```
 

@@ -20,4 +20,7 @@ WORKDIR /app
 COPY --from=build /src/sample/target/audit-sample-*.jar app.jar
 USER audit
 EXPOSE 8080
+# The JRE image has no curl or wget; bash can open the socket itself.
+HEALTHCHECK --interval=15s --timeout=3s --start-period=60s --retries=3 \
+  CMD ["bash", "-c", "exec 3<>/dev/tcp/127.0.0.1/8080 && printf 'GET /actuator/health HTTP/1.0\\r\\n\\r\\n' >&3 && grep -q '\"status\":\"UP\"' <&3"]
 ENTRYPOINT ["java", "-jar", "/app/app.jar"]

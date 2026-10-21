@@ -36,6 +36,45 @@ class AuditSecurityConfigTest {
                 .containsExactly("ROLE_AUDIT_WRITE");
     }
 
+    @Test
+    void rolesClaimConverter_readsANestedClaimPath_asKeycloakStoresRealmRoles() {
+        AuditProperties props = new AuditProperties();
+        props.getSecurity().setRolesClaim("realm_access.roles");
+        Jwt jwt = Jwt.withTokenValue("t").header("alg", "none")
+                .claim("realm_access", java.util.Map.of("roles", List.of("AUDIT_READ"))).build();
+
+        var auth = AuditSecurityConfig.rolesClaimConverter(props).convert(jwt);
+
+        assertThat(auth.getAuthorities()).extracting(GrantedAuthority::getAuthority).containsExactly("ROLE_AUDIT_READ");
+    }
+
+    @Test
+    void rolesClaimConverter_exactNameWithDotsWins_andSpaceSeparatedStringsAreSplit() {
+        AuditProperties props = new AuditProperties();
+        props.getSecurity().setRolesClaim("https://app.example.com/roles");
+        Jwt auth0 = Jwt.withTokenValue("t").header("alg", "none")
+                .claim("https://app.example.com/roles", List.of("AUDIT_ADMIN")).build();
+        props.getSecurity().setRolesClaim("https://app.example.com/roles");
+
+        assertThat(AuditSecurityConfig.rolesClaimConverter(props).convert(auth0).getAuthorities())
+                .extracting(GrantedAuthority::getAuthority).containsExactly("ROLE_AUDIT_ADMIN");
+
+        props.getSecurity().setRolesClaim("scp");
+        Jwt spaced = Jwt.withTokenValue("t").header("alg", "none").claim("scp", "AUDIT_READ  AUDIT_WRITE").build();
+        assertThat(AuditSecurityConfig.rolesClaimConverter(props).convert(spaced).getAuthorities())
+                .extracting(GrantedAuthority::getAuthority).containsExactly("ROLE_AUDIT_READ", "ROLE_AUDIT_WRITE");
+    }
+
+    @Test
+    void rolesClaimConverter_missingOrOddClaim_givesNoRoles() {
+        AuditProperties props = new AuditProperties();
+        Jwt none = Jwt.withTokenValue("t").header("alg", "none").claim("sub", "u").build();
+        Jwt odd = Jwt.withTokenValue("t").header("alg", "none").claim("roles", 42).build();
+
+        assertThat(AuditSecurityConfig.rolesClaimConverter(props).convert(none).getAuthorities()).isEmpty();
+        assertThat(AuditSecurityConfig.rolesClaimConverter(props).convert(odd).getAuthorities()).isEmpty();
+    }
+
     private static Jwt token(String issuer, Object audience, Instant expires) {
         Jwt.Builder b = Jwt.withTokenValue("t").header("alg", "none").subject("u")
                 .issuedAt(expires.minusSeconds(60)).expiresAt(expires);

@@ -66,6 +66,7 @@ public class AuditLog {
                 .createdBy(null)
                 .lastModifiedBy(null)
                 .gdprErasedAt(erasedAt)
+                .version(version == null ? null : version + 1)
                 .build();
     }
 

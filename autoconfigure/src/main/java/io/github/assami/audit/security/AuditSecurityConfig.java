@@ -23,11 +23,14 @@ import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.security.oauth2.jwt.JwtValidators;
 import org.springframework.security.oauth2.jwt.NimbusJwtDecoder;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationConverter;
-import org.springframework.security.oauth2.server.resource.authentication.JwtGrantedAuthoritiesConverter;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.web.SecurityFilterChain;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Default security configuration for the audit endpoints.
@@ -108,17 +111,48 @@ public class AuditSecurityConfig {
      * endpoints check {@code ROLE_AUDIT_*}. Read the roles claim and prefix each value with {@code ROLE_}.
      */
     static JwtAuthenticationConverter rolesClaimConverter(AuditProperties properties) {
-        JwtGrantedAuthoritiesConverter authorities = new JwtGrantedAuthoritiesConverter();
-        authorities.setAuthoritiesClaimName(properties.getSecurity().getRolesClaim());
-        authorities.setAuthorityPrefix("ROLE_");
+        String claim = properties.getSecurity().getRolesClaim();
         JwtAuthenticationConverter converter = new JwtAuthenticationConverter();
-        converter.setJwtGrantedAuthoritiesConverter(authorities);
+        converter.setJwtGrantedAuthoritiesConverter(jwt -> roles(jwt, claim).stream()
+                .map(role -> (GrantedAuthority) new SimpleGrantedAuthority("ROLE_" + role))
+                .toList());
         return converter;
+    }
+
+    /**
+     * The claim is looked up by its exact name first (Auth0 uses names like {@code https://app/roles}), then as a
+     * dotted path into nested objects (Keycloak: {@code realm_access.roles}). A string value is split on spaces.
+     */
+    private static List<String> roles(Jwt jwt, String claim) {
+        Object value = jwt.getClaim(claim);
+        if (value == null && claim.contains(".")) {
+            Object node = jwt.getClaims();
+            for (String part : claim.split("\\.")) {
+                node = node instanceof Map<?, ?> map ? map.get(part) : null;
+            }
+            value = node;
+        }
+        if (value instanceof Collection<?> values) {
+            return values.stream().map(String::valueOf).toList();
+        }
+        if (value instanceof String text && !text.isBlank()) {
+            return List.of(text.trim().split("\\s+"));
+        }
+        return List.of();
+    }
+
+    private static boolean isBlank(String s) {
+        return s == null || s.isBlank();
     }
 
     private static JwtDecoder jwkSetDecoder(AuditProperties properties) {
         String uri = properties.getSecurity().getJwkSetUri();
         if (uri == null || uri.isBlank()) return null;
+        AuditProperties.SecurityProperties security = properties.getSecurity();
+        if (isBlank(security.getIssuer()) || isBlank(security.getAudience())) {
+            log.warn("audit.security.jwk-set-uri is set without issuer and audience: any token signed by that "
+                    + "identity provider is accepted, including tokens issued for another application");
+        }
         NimbusJwtDecoder decoder = NimbusJwtDecoder.withJwkSetUri(uri).build();
         decoder.setJwtValidator(tokenValidator(properties.getSecurity()));
         return decoder;

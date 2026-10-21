@@ -14,6 +14,15 @@ Versioning follows [Semantic Versioning](https://semver.org/).
 - Robustness tests (model, service, tenant filter, in-memory concurrency, REST validation and role matrix),
   sample end-to-end tests on H2 and on PostgreSQL (Testcontainers).
 
+### Fixed (CI and packaging)
+- `mvnw` is now committed as executable (`100755`). Every CI run since the first push failed with
+  `./mvnw: Permission denied`; the same build now passes on Linux with JDK 21.
+- `Dockerfile`: `HEALTHCHECK` on `/actuator/health` (no curl needed).
+- GDPR erasure now increments `version`.
+- `audit.security.roles-claim` accepts a nested path (`realm_access.roles`) and exact names with dots.
+- A startup warning when `jwk-set-uri` is used without `issuer` and `audience`; the sample's `prod` profile and
+  `docker-compose.yml` set them (`JWT_ISSUER`, `JWT_AUDIENCE`).
+
 ### Changed
 - **Breaking:** `POST /batch` returns the list of saved entries directly; the `{results, succeeded, failed}` wrapper
   is gone (`failed` was always 0).
