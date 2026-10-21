@@ -5,6 +5,7 @@ import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
 
@@ -17,6 +18,8 @@ public interface AuditLogJpaRepository
 
     // ── GDPR erasure ─────────────────────────────────────────────────────────
 
+    // Own transaction: in a native image JpaAuditRepository is not proxied, so nothing else opens one.
+    @Transactional
     @Modifying
     @Query("""
            UPDATE AuditLogEntity a
@@ -29,6 +32,8 @@ public interface AuditLogJpaRepository
     // ── Retention ─────────────────────────────────────────────────────────────
 
     /** Native on purpose: HQL would add the soft-delete restriction and match nothing. */
+    // Own transaction: in a native image JpaAuditRepository is not proxied, so nothing else opens one.
+    @Transactional
     @Modifying
     @Query(value = "DELETE FROM audit_log WHERE id IN (SELECT id FROM audit_log "
             + "WHERE deleted_at IS NOT NULL AND deleted_at < :before ORDER BY deleted_at LIMIT :limit)", nativeQuery = true)

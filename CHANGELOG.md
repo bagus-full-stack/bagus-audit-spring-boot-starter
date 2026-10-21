@@ -31,6 +31,13 @@ First release. The sections after the feature list record what changed while the
 - GitHub Actions: CI, GraalVM native smoke test, release to Maven Central
 - Sample application with H2 (dev) / PostgreSQL (prod) profiles
 
+### Hardening before release
+- `audit.security.issuer` is required with `jwk-set-uri`; `audit.security.principal-claim` sets `created_by`.
+- Purge works in batches (`audit.retention.batch-size`); partial index on `deleted_at`.
+- Keyset query bounds the index scan (`created_at <= cursor`): 436 ms to 0.16 ms on 2M rows.
+- Native image: tenancy and retention are switched at runtime, and the `@Modifying` queries carry their own transaction.
+- Docker: Keycloak and native overrides, k6 load script, `restart: on-failure` for the app.
+
 ### Release
 - `release` Maven profile (sources, javadoc, GPG signing, Central Portal upload) and `RELEASING.md`.
 

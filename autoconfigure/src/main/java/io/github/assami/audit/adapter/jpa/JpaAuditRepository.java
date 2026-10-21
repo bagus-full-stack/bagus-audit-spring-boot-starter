@@ -7,7 +7,7 @@ import io.github.assami.audit.model.AuditPage;
 import io.github.assami.audit.model.AuditQuery;
 import io.github.assami.audit.port.AuditRepository;
 import jakarta.persistence.criteria.Predicate;
-import jakarta.transaction.Transactional;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
 

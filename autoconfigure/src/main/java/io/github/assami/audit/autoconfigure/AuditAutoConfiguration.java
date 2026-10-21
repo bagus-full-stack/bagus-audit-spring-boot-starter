@@ -4,7 +4,6 @@ import io.github.assami.audit.adapter.inmemory.InMemoryAuditRepository;
 import io.github.assami.audit.condition.ConditionalOnAuditEnabled;
 import io.github.assami.audit.native_.AuditRuntimeHints;
 import io.github.assami.audit.retention.AuditPurgeJob;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnExpression;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.scheduling.annotation.EnableScheduling;
 import io.github.assami.audit.observability.AuditHealthIndicator;
@@ -94,8 +93,9 @@ public class AuditAutoConfiguration {
 
     // ── Tenancy filter ────────────────────────────────────────────────────────
 
+    // Always registered and switched at runtime: in a GraalVM native image @ConditionalOn* is decided at build time,
+    // so an environment variable set when the container starts would be ignored.
     @Bean
-    @ConditionalOnProperty(prefix = "audit.tenancy", name = "enabled", havingValue = "true")
     @ConditionalOnMissingBean
     public AuditTenantFilter auditTenantFilter(
             AuditProperties properties,
@@ -108,7 +108,6 @@ public class AuditAutoConfiguration {
 
     @Configuration(proxyBeanMethods = false)
     @EnableScheduling
-    @ConditionalOnExpression("${audit.retention.deleted-days:0} > 0")
     static class RetentionConfiguration {
 
         @Bean

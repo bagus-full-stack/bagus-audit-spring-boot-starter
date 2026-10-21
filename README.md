@@ -260,11 +260,13 @@ curl -s -X POST localhost:8081/default/token -d 'grant_type=client_credentials&c
 ## Status and known limits
 
 - Version is `1.0.0-SNAPSHOT`; the API may still change.
-- The JPA adapter is tested on H2 only, not on PostgreSQL.
-- The GraalVM native-image hints (`AuditRuntimeHints`) have not been validated with a native build.
+- Tested: H2 and PostgreSQL 16 (Testcontainers), a mock OAuth2 server and Keycloak 26, the JVM image and the GraalVM
+  native image (`docker build --target runtime-native .`, 28/28 smoke checks), and a k6 load run (200 req/s, p95 about
+  400 ms, one container, 2M rows). Not tested: several instances, a provider other than Keycloak.
+- In a native image `@ConditionalOn*` is decided at build time. Tenancy and retention are therefore switched at runtime
+  by their properties, but `audit.enabled` and `audit.api.base-path` must be set when the image is built.
 - Not implemented yet: rate limiting, caching, a MongoDB adapter (planned for 1.1, see [CHANGELOG](CHANGELOG.md)).
-- Listing with several optional filters on a very large table is not index-tuned; add an index on
-  `(tenant_id, created_at DESC, id DESC)` if you filter by tenant at scale.
+- An admin can delete and erase entries, so the log is not tamper-proof; payloads are stored in clear text.
 
 ## License
 
