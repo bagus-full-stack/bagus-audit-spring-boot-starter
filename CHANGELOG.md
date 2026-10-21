@@ -8,6 +8,32 @@ Versioning follows [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [1.0.0] — 2026-10-21
+
+First release. The sections after the feature list record what changed while the code was hardened before publishing.
+
+### Features
+- Multi-module Maven project: `autoconfigure`, `starter`, `starter-jpa`
+- Hexagonal architecture: `AuditRepository` port with JPA and in-memory adapters
+- Cursor-based pagination via composite keyset `(created_at DESC, id DESC)`
+- Soft delete with `@SQLDelete` + `@SQLRestriction`
+- GDPR erasure endpoint `DELETE /{id}/personal-data` with `AuditGdprEraser` SPI
+- Role-based security: `ROLE_AUDIT_READ`, `ROLE_AUDIT_WRITE`, `ROLE_AUDIT_ADMIN`
+- OAuth2 JWT resource server integration
+- Multi-tenancy: HEADER, JWT_CLAIM, SUBDOMAIN strategies
+- Bulk operations (`POST /batch`, max 500 entries, one transaction)
+- Spring Application Events: Created, Deleted, Erased
+- Micrometer counters `audit.entries.created`, `audit.entries.deleted`, `audit.entries.erased`
+- Actuator health indicator
+- GraalVM Native Image hints (`AuditRuntimeHints`)
+- RFC 9457 Problem Details error responses
+- Flyway migrations for the sample (H2 and PostgreSQL), with keyset and tenant indexes
+- GitHub Actions: CI, GraalVM native smoke test, release to Maven Central
+- Sample application with H2 (dev) / PostgreSQL (prod) profiles
+
+### Release
+- `release` Maven profile (sources, javadoc, GPG signing, Central Portal upload) and `RELEASING.md`.
+
 ### Added
 - Docker: multi-stage `Dockerfile`, `docker-compose.yml` (PostgreSQL + mock OAuth2), `docker/smoke-test.sh`.
 - `audit.security.roles-claim` / `audit.security.jwk-set-uri`; JWT roles are now mapped to `ROLE_*`.
@@ -60,28 +86,5 @@ Versioning follows [Semantic Versioning](https://semver.org/).
 - `AuditMetrics.recordOperation` (never called) and the `audit.operations.total` /
   `audit.operation.duration` metrics; only `audit.repository.size` remains
 
-## [1.0.0] — 2024-XX-XX
-
-### Added
-- Multi-module Maven project: `autoconfigure`, `starter`, `starter-jpa`
-- Hexagonal architecture: `AuditRepository` port with JPA and in-memory adapters
-- Cursor-based pagination via composite keyset `(created_at DESC, id DESC)`
-- Soft delete with `@SQLDelete` + `@SQLRestriction`
-- GDPR erasure endpoint `DELETE /{id}/personal-data` with `AuditGdprEraser` SPI
-- Role-based security: `ROLE_AUDIT_READ`, `ROLE_AUDIT_WRITE`, `ROLE_AUDIT_ADMIN`
-- OAuth2 JWT resource server integration
-- Multi-tenancy: HEADER, JWT_CLAIM, SUBDOMAIN strategies
-- Bulk operations (`POST /batch`, max 500 entries, one transaction)
-- Spring Application Events: Created, Deleted, Erased
-- Micrometer metric: `audit.repository.size`
-- Actuator health indicator
-- GraalVM Native Image hints (`AuditRuntimeHints`)
-- RFC 9457 Problem Details error responses
-- Flyway + Liquibase DDL reference (5 indexes)
-- GitHub Actions: CI, release to Maven Central, GraalVM native smoke test
-- Sample application with H2 (dev) / PostgreSQL (prod) profiles
-
-### Planned (v1.1)
+### Planned
 - MongoDB adapter
-- Redis distributed rate limiting full implementation
-- Distributed cache (Redis) adapter

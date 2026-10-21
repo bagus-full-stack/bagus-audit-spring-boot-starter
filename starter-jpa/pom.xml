@@ -31,4 +31,43 @@
       <artifactId>spring-boot-starter-data-jpa</artifactId>
     </dependency>
   </dependencies>
+
+  <!-- These modules only declare dependencies. Central still requires sources and javadoc jars, so attach small ones. -->
+  <profiles>
+    <profile>
+      <id>release</id>
+      <build>
+        <plugins>
+          <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-jar-plugin</artifactId>
+            <executions>
+              <execution>
+                <id>sources-jar</id>
+                <phase>package</phase>
+                <goals><goal>jar</goal></goals>
+                <configuration>
+                  <classifier>sources</classifier>
+                  <classesDirectory>${project.basedir}</classesDirectory>
+                  <includes><include>pom.xml</include></includes>
+                  <forceCreation>true</forceCreation>
+                </configuration>
+              </execution>
+              <execution>
+                <id>javadoc-jar</id>
+                <phase>package</phase>
+                <goals><goal>jar</goal></goals>
+                <configuration>
+                  <classifier>javadoc</classifier>
+                  <classesDirectory>${project.basedir}</classesDirectory>
+                  <includes><include>pom.xml</include></includes>
+                  <forceCreation>true</forceCreation>
+                </configuration>
+              </execution>
+            </executions>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
+  </profiles>
 </project>

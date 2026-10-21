@@ -225,6 +225,8 @@ Requires JDK 21 or newer. The suite covers service logic, model invariants, the 
 hostile input), and the sample app end to end on H2. Seven more tests run the same scenarios on a real
 PostgreSQL 16 through Testcontainers; they are skipped when Docker is not running.
 
+Publishing to Maven Central is described in [RELEASING.md](RELEASING.md).
+
 ## Docker
 
 ```bash

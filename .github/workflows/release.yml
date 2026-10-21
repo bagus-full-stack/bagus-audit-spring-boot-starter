@@ -1,5 +1,6 @@
 name: Release
 
+# Push a tag such as v1.0.0 to upload the release to the Maven Central Portal (see RELEASING.md).
 on:
   push:
     tags:
@@ -21,31 +22,35 @@ jobs:
         with:
           java-version: '21'
           distribution: temurin
-          server-id: ossrh
-          server-username: MAVEN_USERNAME
-          server-password: MAVEN_PASSWORD
-          gpg-private-key: ${{ secrets.GPG_PRIVATE_KEY }}
-          gpg-passphrase: GPG_PASSPHRASE
           cache: maven
+          # Writes a settings.xml entry "central" that reads these two environment variables.
+          server-id: central
+          server-username: CENTRAL_USERNAME
+          server-password: CENTRAL_PASSWORD
+          gpg-private-key: ${{ secrets.GPG_PRIVATE_KEY }}
+          gpg-passphrase: MAVEN_GPG_PASSPHRASE
 
       - name: Extract version from tag
         id: version
         run: echo "VERSION=${GITHUB_REF_NAME#v}" >> "$GITHUB_OUTPUT"
 
       - name: Set release version
-        run: ./mvnw -B versions:set -DnewVersion=${{ steps.version.outputs.VERSION }} --no-transfer-progress
+        run: ./mvnw -B versions:set -DnewVersion=${{ steps.version.outputs.VERSION }} -DgenerateBackupPoms=false --no-transfer-progress
 
-      - name: Build, sign & deploy
-        run: ./mvnw -B deploy -P release --no-transfer-progress
+      # Runs the tests, signs the jars and uploads the bundle. The deployment then waits in the
+      # Central Portal until you publish it by hand (autoPublish is off).
+      - name: Build, sign and upload
+        run: ./mvnw -B -P release deploy --no-transfer-progress
         env:
-          MAVEN_USERNAME: ${{ secrets.OSSRH_USERNAME }}
-          MAVEN_PASSWORD: ${{ secrets.OSSRH_TOKEN }}
-          GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
+          CENTRAL_USERNAME: ${{ secrets.CENTRAL_USERNAME }}
+          CENTRAL_PASSWORD: ${{ secrets.CENTRAL_PASSWORD }}
+          MAVEN_GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@3bb12739c298aeb8a4eeaf626c5b8d85266b0e65 # v2
         with:
           generate_release_notes: true
           files: |
-            **/target/*.jar
-            !**/target/*-sources.jar
+            autoconfigure/target/*.jar
+            starter/target/*.jar
+            starter-jpa/target/*.jar
