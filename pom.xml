@@ -45,7 +45,6 @@
     <module>autoconfigure</module>
     <module>starter</module>
     <module>starter-jpa</module>
-    <module>starter-full</module>
     <module>sample</module>
   </modules>
 
@@ -75,11 +74,6 @@
       <dependency>
         <groupId>io.github.bagus-full-stack</groupId>
         <artifactId>audit-starter-jpa</artifactId>
-        <version>${project.version}</version>
-      </dependency>
-      <dependency>
-        <groupId>io.github.bagus-full-stack</groupId>
-        <artifactId>audit-starter-full</artifactId>
         <version>${project.version}</version>
       </dependency>
     </dependencies>

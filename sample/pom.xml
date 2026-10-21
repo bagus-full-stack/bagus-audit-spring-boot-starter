@@ -15,10 +15,10 @@
   <description>Sample application demonstrating the audit starter.</description>
 
   <dependencies>
-    <!-- Use the full starter -->
+    <!-- JPA starter -->
     <dependency>
       <groupId>io.github.bagus-full-stack</groupId>
-      <artifactId>audit-starter-full</artifactId>
+      <artifactId>audit-starter-jpa</artifactId>
     </dependency>
 
     <!-- Database: PostgreSQL for prod, H2 for dev -->

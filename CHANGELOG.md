@@ -18,7 +18,7 @@ Versioning follows [Semantic Versioning](https://semver.org/).
   `audit.security.enabled`, `audit.security.roles.*`
 - Unused dependencies: Resilience4j, Caffeine, Redis, Spring Retry, AOP, Spring Cache and Spring Data REST
   (Spring Data REST could export the audit table over HTTP outside the audit security chain).
-  `audit-starter-full` is now the same as `audit-starter-jpa`
+  The `audit-starter-full` module is removed: it only depended on `audit-starter-jpa`, use that instead
 - Unused i18n bundles (`audit-messages*.properties`): no message source ever read them
 - `AuditMetrics.recordOperation` (never called) and the `audit.operations.total` /
   `audit.operation.duration` metrics; only `audit.repository.size` remains
@@ -26,7 +26,7 @@ Versioning follows [Semantic Versioning](https://semver.org/).
 ## [1.0.0] — 2024-XX-XX
 
 ### Added
-- Multi-module Maven project: `autoconfigure`, `starter`, `starter-jpa`, `starter-full`
+- Multi-module Maven project: `autoconfigure`, `starter`, `starter-jpa`
 - Hexagonal architecture: `AuditRepository` port with JPA and in-memory adapters
 - Cursor-based pagination via composite keyset `(created_at DESC, id DESC)`
 - Soft delete with `@SQLDelete` + `@SQLRestriction`

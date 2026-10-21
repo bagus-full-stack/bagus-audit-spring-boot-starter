@@ -44,10 +44,9 @@ Storage is pluggable (JPA, or an in-memory fallback for development).
 | `autoconfigure` | All the code: model, service, REST controller, security, tenancy, JPA and in-memory adapters, auto-configuration |
 | `starter` | Core starter: autoconfigure + web, security, OAuth2 resource server, actuator, validation. Uses the in-memory repository |
 | `starter-jpa` | `starter` + Spring Data JPA. Persists entries in the `audit_log` table |
-| `starter-full` | Same as `starter-jpa`, kept so existing dependencies keep resolving |
 | `sample` | Example application with H2 (default) and PostgreSQL (`prod` profile), Flyway migration included |
 
-Maven coordinates (group `io.github.bagus-full-stack`): `audit-starter`, `audit-starter-jpa`, `audit-starter-full`.
+Maven coordinates (group `io.github.bagus-full-stack`): `audit-starter`, `audit-starter-jpa`.
 
 ## Quick start
 
