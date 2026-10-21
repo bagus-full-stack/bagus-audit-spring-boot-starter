@@ -17,7 +17,7 @@
   <packaging>pom</packaging>
   <name>Audit Spring Boot Starter — Parent</name>
   <description>Production-ready audit library for Spring Boot 3 microservices</description>
-  <url>https://github.com/assami/audit-spring-boot-starter</url>
+  <url>https://github.com/bagus-full-stack/bagus-audit-spring-boot-starter</url>
 
   <licenses>
     <license>
@@ -36,9 +36,9 @@
   </developers>
 
   <scm>
-    <connection>scm:git:git://github.com/assami/audit-spring-boot-starter.git</connection>
-    <developerConnection>scm:git:ssh://github.com/assami/audit-spring-boot-starter.git</developerConnection>
-    <url>https://github.com/assami/audit-spring-boot-starter</url>
+    <connection>scm:git:https://github.com/bagus-full-stack/bagus-audit-spring-boot-starter.git</connection>
+    <developerConnection>scm:git:ssh://git@github.com/bagus-full-stack/bagus-audit-spring-boot-starter.git</developerConnection>
+    <url>https://github.com/bagus-full-stack/bagus-audit-spring-boot-starter</url>
   </scm>
 
   <modules>
