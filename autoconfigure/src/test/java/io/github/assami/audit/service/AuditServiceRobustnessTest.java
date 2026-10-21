@@ -80,6 +80,20 @@ class AuditServiceRobustnessTest {
     }
 
     @Test
+    void failingListener_doesNotTurnACommittedWriteIntoAnError() {
+        AuditService svc = new AuditService(repo, e -> { throw new IllegalStateException("listener down"); },
+                props, Optional.empty());
+
+        AuditLog created = svc.create(AuditLog.builder().action("A"));
+        List<AuditLog> batch = svc.createBatch(List.of(AuditLog.builder().action("B"), AuditLog.builder().action("C")));
+        svc.erasePersonalData(created.getId());
+        svc.delete(created.getId());
+
+        assertThat(batch).hasSize(2);
+        assertThat(repo.count()).isEqualTo(2);
+    }
+
+    @Test
     void emptyBatch_savesNothingAndPublishesNothing() {
         assertThat(service(Optional.empty()).createBatch(List.of())).isEmpty();
         assertThat(events).isEmpty();

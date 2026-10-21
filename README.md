@@ -121,6 +121,8 @@ Cursors are opaque; a malformed one gives `400`.
 - Endpoints are protected by a dedicated filter chain on the base path, plus `@PreAuthorize` on each method.
 - Authentication is an OAuth2 resource server (JWT). Roles are read as `ROLE_AUDIT_READ`, `ROLE_AUDIT_WRITE`, `ROLE_AUDIT_ADMIN`.
 - The `JwtDecoder` comes from your application. If you define none, set `audit.security.jwk-set-uri`.
+  That decoder checks signature and expiry only; also set `audit.security.issuer` and `audit.security.audience`,
+  or it accepts any token the identity provider signed for another application.
   With neither, the application starts, logs a warning, and every audit request is rejected.
 - Spring Boot drops its default security once any `SecurityFilterChain` exists. The starter adds a fallback chain
   (every other route requires authentication, HTTP basic and form login) to keep that default. Define your own chains
@@ -174,6 +176,8 @@ class MyEraser implements AuditGdprEraser {
 | `audit.name` | `unknown-service` | Written as `service_name` on every entry |
 | `audit.api.base-path` | `/api/audit` | Base path of the REST API |
 | `audit.security.jwk-set-uri` | none | JWKS URL used when the application defines no `JwtDecoder` |
+| `audit.security.issuer` | none | Required `iss` claim (only for the decoder built from `jwk-set-uri`) |
+| `audit.security.audience` | none | Required value in the `aud` claim (same limit) |
 | `audit.tenancy.enabled` | `false` | Turn multi-tenancy on |
 | `audit.tenancy.strategy` | `JWT_CLAIM` | `JWT_CLAIM`, `HEADER` or `SUBDOMAIN` |
 | `audit.tenancy.header-name` | `X-Tenant-ID` | Header read by `HEADER` |
@@ -183,7 +187,9 @@ class MyEraser implements AuditGdprEraser {
 ## Events, metrics and health
 
 - Application events: `AuditLogCreatedEvent`, `AuditLogDeletedEvent`, `AuditLogErasedEvent`.
-- Micrometer gauge `audit.repository.size` (non-deleted entries). It runs a `COUNT(*)` on each scrape.
+- Micrometer counters `audit.entries.created`, `audit.entries.deleted` and `audit.entries.erased`. They count
+  events in memory (since the last restart) and never query the database.
+- Event listeners run after the row is committed. If one throws, the error is logged and the request still succeeds.
 - Actuator health indicator `auditHealthIndicator`: a primary-key lookup, cheap on large tables.
 
 ## Error format

@@ -67,6 +67,16 @@ public class AuditProperties {
         /** JWT claim holding the role names, for example {@code ["AUDIT_READ"]}. Each gets the {@code ROLE_} prefix. */
         private String rolesClaim = "roles";
 
+        /** Required {@code iss} claim. Only applies to the decoder built from {@code jwk-set-uri}. */
+        private String issuer;
+
+        /** Required value in the {@code aud} claim. Only applies to the decoder built from {@code jwk-set-uri}. */
+        private String audience;
+
+        public String getIssuer()                    { return issuer; }
+        public void setIssuer(String issuer)         { this.issuer = issuer; }
+        public String getAudience()                  { return audience; }
+        public void setAudience(String audience)     { this.audience = audience; }
         public String getJwkSetUri()                 { return jwkSetUri; }
         public void setJwkSetUri(String jwkSetUri)   { this.jwkSetUri = jwkSetUri; }
         public String getRolesClaim()                { return rolesClaim; }

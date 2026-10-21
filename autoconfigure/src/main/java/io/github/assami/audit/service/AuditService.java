@@ -13,6 +13,7 @@ import io.github.assami.audit.properties.AuditProperties;
 import io.github.assami.audit.tenancy.TenantContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.context.ApplicationEvent;
 import org.springframework.context.ApplicationEventPublisher;
 
 import java.util.List;
@@ -50,7 +51,7 @@ public class AuditService {
             builder.tenantId(TenantContext.get());
         }
         AuditLog saved = repository.save(builder.build());
-        eventPublisher.publishEvent(new AuditLogCreatedEvent(this, saved));
+        publish(new AuditLogCreatedEvent(this, saved));
         log.debug("Audit log created: {}", saved.getId());
         return saved;
     }
@@ -64,7 +65,7 @@ public class AuditService {
                 })
                 .toList();
         List<AuditLog> saved = repository.saveAll(logs);
-        saved.forEach(l -> eventPublisher.publishEvent(new AuditLogCreatedEvent(this, l)));
+        saved.forEach(l -> publish(new AuditLogCreatedEvent(this, l)));
         return saved;
     }
 
@@ -91,7 +92,7 @@ public class AuditService {
     public void delete(String id) {
         findById(id); // tenant check
         repository.softDelete(id);
-        eventPublisher.publishEvent(new AuditLogDeletedEvent(this, id));
+        publish(new AuditLogDeletedEvent(this, id));
         log.debug("Audit log soft-deleted: {}", id);
     }
 
@@ -104,13 +105,19 @@ public class AuditService {
         gdprEraser.ifPresent(e -> e.beforeErase(id));
 
         repository.gdprErase(id);
-        eventPublisher.publishEvent(new AuditLogErasedEvent(this, id));
+        publish(new AuditLogErasedEvent(this, id));
         log.info("GDPR erasure performed on audit log: {}", id);
     }
 
-    // ── Stats ────────────────────────────────────────────────────────────────
-
-    public long count() {
-        return repository.count();
+    /**
+     * The row is already committed when events go out, so a failing listener must not turn
+     * a successful write into an error response (the caller would retry and duplicate it).
+     */
+    private void publish(ApplicationEvent event) {
+        try {
+            eventPublisher.publishEvent(event);
+        } catch (RuntimeException ex) {
+            log.warn("Listener failed for {}: {}", event.getClass().getSimpleName(), ex.toString());
+        }
     }
 }

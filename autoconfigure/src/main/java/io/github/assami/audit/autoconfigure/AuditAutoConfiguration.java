@@ -105,8 +105,8 @@ public class AuditAutoConfiguration {
     @Bean
     @ConditionalOnClass(MeterRegistry.class)
     @ConditionalOnMissingBean
-    public AuditMetrics auditMetrics(MeterRegistry registry, AuditService service) {
-        return new AuditMetrics(registry, service);
+    public AuditMetrics auditMetrics(MeterRegistry registry) {
+        return new AuditMetrics(registry);
     }
 
     @Bean(name = "auditHealthIndicator")

@@ -14,7 +14,13 @@ Versioning follows [Semantic Versioning](https://semver.org/).
 - Robustness tests (model, service, tenant filter, in-memory concurrency, REST validation and role matrix),
   sample end-to-end tests on H2 and on PostgreSQL (Testcontainers).
 
+### Changed
+- Metrics: the `audit.repository.size` gauge (a full `COUNT(*)` on every scrape) is replaced by the counters
+  `audit.entries.created`, `audit.entries.deleted` and `audit.entries.erased`. `AuditService.count()` is removed.
+- A listener that throws no longer turns a committed write into an error response; it is logged.
+
 ### Security
+- `audit.security.issuer` and `audit.security.audience` validate the token when the decoder is built from `jwk-set-uri`.
 - `audit.tenancy.enforce-isolation` now defaults to `true`: with tenancy on, a request without a tenant used to read every tenant's entries.
 - With `HEADER` or `SUBDOMAIN`, a tenant that differs from the token's tenant claim is rejected with `403`.
 - `DELETE` now clears `payload`, `created_by` and `last_modified_by` (a deleted entry could not be erased afterwards).

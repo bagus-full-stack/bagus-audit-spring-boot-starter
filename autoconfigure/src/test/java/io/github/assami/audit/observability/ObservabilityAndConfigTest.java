@@ -52,20 +52,28 @@ class ObservabilityAndConfigTest {
     }
 
     @Test
-    void metrics_gaugeTracksTheNumberOfLiveEntries() {
+    void metrics_countersFollowTheEvents_withoutTouchingTheRepository() {
         AuditProperties props = new AuditProperties();
         props.setName("svc");
-        InMemoryAuditRepository repo = new InMemoryAuditRepository();
-        AuditService service = new AuditService(repo, e -> {}, props, Optional.empty());
+        AuditRepository repo = new InMemoryAuditRepository() {
+            @Override public long count() { throw new AssertionError("metrics must not count rows"); }
+        };
         SimpleMeterRegistry registry = new SimpleMeterRegistry();
-        new AuditMetrics(registry, service);
+        AuditMetrics metrics = new AuditMetrics(registry);
+        AuditService service = new AuditService(repo, e -> {
+            if (e instanceof io.github.assami.audit.event.AuditLogCreatedEvent c) metrics.onCreated(c);
+            if (e instanceof io.github.assami.audit.event.AuditLogDeletedEvent d) metrics.onDeleted(d);
+            if (e instanceof io.github.assami.audit.event.AuditLogErasedEvent r) metrics.onErased(r);
+        }, props, Optional.empty());
 
-        assertThat(registry.get(AuditMetrics.METRIC_REPO_SIZE).gauge().value()).isZero();
         AuditLog a = service.create(AuditLog.builder().action("A"));
-        service.create(AuditLog.builder().action("B"));
-        assertThat(registry.get(AuditMetrics.METRIC_REPO_SIZE).gauge().value()).isEqualTo(2.0);
+        AuditLog b = service.create(AuditLog.builder().action("B"));
         service.delete(a.getId());
-        assertThat(registry.get(AuditMetrics.METRIC_REPO_SIZE).gauge().value()).isEqualTo(1.0);
+        service.erasePersonalData(b.getId());
+
+        assertThat(registry.get(AuditMetrics.METRIC_CREATED).counter().count()).isEqualTo(2.0);
+        assertThat(registry.get(AuditMetrics.METRIC_DELETED).counter().count()).isEqualTo(1.0);
+        assertThat(registry.get(AuditMetrics.METRIC_ERASED).counter().count()).isEqualTo(1.0);
     }
 
     @Test

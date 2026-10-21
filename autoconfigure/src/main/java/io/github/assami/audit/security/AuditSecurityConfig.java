@@ -14,11 +14,20 @@ import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
+import org.springframework.security.oauth2.core.DelegatingOAuth2TokenValidator;
+import org.springframework.security.oauth2.core.OAuth2TokenValidator;
+import org.springframework.security.oauth2.jwt.Jwt;
+import org.springframework.security.oauth2.jwt.JwtClaimNames;
+import org.springframework.security.oauth2.jwt.JwtClaimValidator;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
+import org.springframework.security.oauth2.jwt.JwtValidators;
 import org.springframework.security.oauth2.jwt.NimbusJwtDecoder;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationConverter;
 import org.springframework.security.oauth2.server.resource.authentication.JwtGrantedAuthoritiesConverter;
 import org.springframework.security.web.SecurityFilterChain;
+
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Default security configuration for the audit endpoints.
@@ -109,6 +118,27 @@ public class AuditSecurityConfig {
 
     private static JwtDecoder jwkSetDecoder(AuditProperties properties) {
         String uri = properties.getSecurity().getJwkSetUri();
-        return (uri == null || uri.isBlank()) ? null : NimbusJwtDecoder.withJwkSetUri(uri).build();
+        if (uri == null || uri.isBlank()) return null;
+        NimbusJwtDecoder decoder = NimbusJwtDecoder.withJwkSetUri(uri).build();
+        decoder.setJwtValidator(tokenValidator(properties.getSecurity()));
+        return decoder;
+    }
+
+    /**
+     * Signature and expiry alone accept any token the identity provider signed, including ones issued
+     * for another application. The issuer and audience checks narrow that to tokens meant for this one.
+     */
+    static OAuth2TokenValidator<Jwt> tokenValidator(AuditProperties.SecurityProperties security) {
+        String issuer = security.getIssuer();
+        List<OAuth2TokenValidator<Jwt>> validators = new ArrayList<>();
+        validators.add(issuer == null || issuer.isBlank()
+                ? JwtValidators.createDefault()
+                : JwtValidators.createDefaultWithIssuer(issuer));
+        String audience = security.getAudience();
+        if (audience != null && !audience.isBlank()) {
+            validators.add(new JwtClaimValidator<List<String>>(JwtClaimNames.AUD,
+                    aud -> aud != null && aud.contains(audience)));
+        }
+        return new DelegatingOAuth2TokenValidator<>(validators);
     }
 }
