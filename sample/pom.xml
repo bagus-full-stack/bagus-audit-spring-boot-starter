@@ -5,7 +5,7 @@
   <modelVersion>4.0.0</modelVersion>
 
   <parent>
-    <groupId>io.github.assami</groupId>
+    <groupId>io.github.bagus-full-stack</groupId>
     <artifactId>audit-spring-boot-starter-parent</artifactId>
     <version>1.0.0-SNAPSHOT</version>
   </parent>
@@ -17,7 +17,7 @@
   <dependencies>
     <!-- Use the full starter -->
     <dependency>
-      <groupId>io.github.assami</groupId>
+      <groupId>io.github.bagus-full-stack</groupId>
       <artifactId>audit-starter-full</artifactId>
     </dependency>
 

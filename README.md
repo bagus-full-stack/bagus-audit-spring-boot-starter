@@ -47,7 +47,7 @@ Storage is pluggable (JPA, or an in-memory fallback for development).
 | `starter-full` | `starter-jpa` + Resilience4j, Caffeine, Spring Retry and AOP (bundled for future use, not used by the code today) |
 | `sample` | Example application with H2 (default) and PostgreSQL (`prod` profile), Flyway migration included |
 
-Maven coordinates (group `io.github.assami`): `audit-starter`, `audit-starter-jpa`, `audit-starter-full`.
+Maven coordinates (group `io.github.bagus-full-stack`): `audit-starter`, `audit-starter-jpa`, `audit-starter-full`.
 
 ## Quick start
 
@@ -63,7 +63,7 @@ Then add the starter to your application:
 
 ```xml
 <dependency>
-  <groupId>io.github.assami</groupId>
+  <groupId>io.github.bagus-full-stack</groupId>
   <artifactId>audit-starter-jpa</artifactId>
   <version>1.0.0-SNAPSHOT</version>
 </dependency>

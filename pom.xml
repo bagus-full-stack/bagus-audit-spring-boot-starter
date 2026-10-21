@@ -11,7 +11,7 @@
     <relativePath/>
   </parent>
 
-  <groupId>io.github.assami</groupId>
+  <groupId>io.github.bagus-full-stack</groupId>
   <artifactId>audit-spring-boot-starter-parent</artifactId>
   <version>1.0.0-SNAPSHOT</version>
   <packaging>pom</packaging>
@@ -65,22 +65,22 @@
     <dependencies>
       <!-- Internal modules -->
       <dependency>
-        <groupId>io.github.assami</groupId>
+        <groupId>io.github.bagus-full-stack</groupId>
         <artifactId>audit-autoconfigure</artifactId>
         <version>${project.version}</version>
       </dependency>
       <dependency>
-        <groupId>io.github.assami</groupId>
+        <groupId>io.github.bagus-full-stack</groupId>
         <artifactId>audit-starter</artifactId>
         <version>${project.version}</version>
       </dependency>
       <dependency>
-        <groupId>io.github.assami</groupId>
+        <groupId>io.github.bagus-full-stack</groupId>
         <artifactId>audit-starter-jpa</artifactId>
         <version>${project.version}</version>
       </dependency>
       <dependency>
-        <groupId>io.github.assami</groupId>
+        <groupId>io.github.bagus-full-stack</groupId>
         <artifactId>audit-starter-full</artifactId>
         <version>${project.version}</version>
       </dependency>
