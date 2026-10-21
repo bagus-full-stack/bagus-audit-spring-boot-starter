@@ -20,6 +20,10 @@ jobs:
           distribution: graalvm-community
           github-token: ${{ secrets.GITHUB_TOKEN }}
 
+      # The sample depends on the other modules, which a fresh runner does not have in ~/.m2.
+      - name: Install the starter modules
+        run: ./mvnw -B -DskipTests -pl sample -am install --no-transfer-progress
+
       - name: Build native image (sample app)
         run: ./mvnw -B -pl sample native:compile -Pnative --no-transfer-progress
 
