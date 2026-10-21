@@ -194,8 +194,26 @@ Examples: `404` unknown entry, `400` invalid cursor or missing tenant, `401` no 
 ./mvnw verify
 ```
 
-Requires JDK 21 or newer. The suite has 35 tests: service logic, the in-memory and JPA (H2) repositories,
-the tenant filter, and the REST layer with a mocked `JwtDecoder`.
+Requires JDK 21 or newer. The suite covers service logic, model invariants, the in-memory repository
+(random colliding timestamps, concurrent writers), the tenant filter, the REST layer (validation, role matrix,
+hostile input), and the sample app end to end on H2. Seven more tests run the same scenarios on a real
+PostgreSQL 16 through Testcontainers; they are skipped when Docker is not running.
+
+## Docker
+
+```bash
+docker build --target test .        # whole test suite in a container
+docker compose up -d --build        # PostgreSQL + mock OAuth2 (:8081) + sample app (:8080)
+./docker/smoke-test.sh              # 27 end-to-end checks (needs bash and curl)
+docker compose down -v
+```
+
+The mock OAuth2 server issues tokens for `admin-acme`, `writer-acme`, `reader-acme` and `reader-globex`
+(see `docker/mock-oauth2.json`):
+
+```bash
+curl -s -X POST localhost:8081/default/token -d 'grant_type=client_credentials&client_id=reader-acme&client_secret=x'
+```
 
 ## Status and known limits
 

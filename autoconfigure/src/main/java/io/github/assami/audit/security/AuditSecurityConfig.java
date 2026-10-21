@@ -16,6 +16,8 @@ import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.security.oauth2.jwt.NimbusJwtDecoder;
+import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationConverter;
+import org.springframework.security.oauth2.server.resource.authentication.JwtGrantedAuthoritiesConverter;
 import org.springframework.security.web.SecurityFilterChain;
 
 /**
@@ -47,7 +49,8 @@ public class AuditSecurityConfig {
     @ConditionalOnMissingBean(name = "auditSecurityFilterChain")
     public SecurityFilterChain auditSecurityFilterChain(HttpSecurity http,
                                                         AuditProperties properties,
-                                                        ObjectProvider<JwtDecoder> decoders) throws Exception {
+                                                        ObjectProvider<JwtDecoder> decoders,
+                                                        ObjectProvider<JwtAuthenticationConverter> converters) throws Exception {
         String basePath = properties.getApi().getBasePath() + "/**";
 
         http
@@ -66,7 +69,9 @@ public class AuditSecurityConfig {
 
         JwtDecoder decoder = decoders.getIfAvailable(() -> jwkSetDecoder(properties));
         if (decoder != null) {
-            http.oauth2ResourceServer(oauth2 -> oauth2.jwt(jwt -> jwt.decoder(decoder)));
+            JwtAuthenticationConverter converter = converters.getIfAvailable(() -> rolesClaimConverter(properties));
+            http.oauth2ResourceServer(oauth2 -> oauth2.jwt(jwt ->
+                    jwt.decoder(decoder).jwtAuthenticationConverter(converter)));
         } else {
             log.warn("No JwtDecoder bean and no audit.security.jwk-set-uri: audit endpoints reject every request");
         }
@@ -87,6 +92,19 @@ public class AuditSecurityConfig {
                 .httpBasic(Customizer.withDefaults())
                 .formLogin(Customizer.withDefaults())
                 .build();
+    }
+
+    /**
+     * Spring maps only the {@code scope} claim by default (authorities {@code SCOPE_*}), but the audit
+     * endpoints check {@code ROLE_AUDIT_*}. Read the roles claim and prefix each value with {@code ROLE_}.
+     */
+    static JwtAuthenticationConverter rolesClaimConverter(AuditProperties properties) {
+        JwtGrantedAuthoritiesConverter authorities = new JwtGrantedAuthoritiesConverter();
+        authorities.setAuthoritiesClaimName(properties.getSecurity().getRolesClaim());
+        authorities.setAuthorityPrefix("ROLE_");
+        JwtAuthenticationConverter converter = new JwtAuthenticationConverter();
+        converter.setJwtGrantedAuthoritiesConverter(authorities);
+        return converter;
     }
 
     private static JwtDecoder jwkSetDecoder(AuditProperties properties) {

@@ -8,6 +8,16 @@ Versioning follows [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Added
+- Docker: multi-stage `Dockerfile`, `docker-compose.yml` (PostgreSQL + mock OAuth2), `docker/smoke-test.sh`.
+- `audit.security.roles-claim` / `audit.security.jwk-set-uri`; JWT roles are now mapped to `ROLE_*`.
+- Robustness tests (model, service, tenant filter, in-memory concurrency, REST validation and role matrix),
+  sample end-to-end tests on H2 and on PostgreSQL (Testcontainers).
+
+### Fixed
+- The starter now registers `AuditLogEntity` with the host's entity scan (host apps outside `io.github.assami.audit` failed to start).
+- Sample: Flyway `V1` no longer uses partial indexes on H2 (vendor scripts under `db/vendor/{vendor}`), prod profile uses the PostgreSQL driver and disables the H2 console, `flyway-database-postgresql` added.
+
 ### Fixed
 - `audit-starter` and `audit-starter-jpa` now include the OAuth2 resource server; the security
   configuration needs it, and only `audit-starter-full` had it

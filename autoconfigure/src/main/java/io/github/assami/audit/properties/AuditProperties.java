@@ -64,8 +64,13 @@ public class AuditProperties {
         /** JWKS endpoint used to build a JwtDecoder when the host application defines none. */
         private String jwkSetUri;
 
+        /** JWT claim holding the role names, for example {@code ["AUDIT_READ"]}. Each gets the {@code ROLE_} prefix. */
+        private String rolesClaim = "roles";
+
         public String getJwkSetUri()                 { return jwkSetUri; }
         public void setJwkSetUri(String jwkSetUri)   { this.jwkSetUri = jwkSetUri; }
+        public String getRolesClaim()                { return rolesClaim; }
+        public void setRolesClaim(String rolesClaim) { this.rolesClaim = rolesClaim; }
     }
 
     public static class TenancyProperties {

@@ -1,0 +1,45 @@
+# Local stack: PostgreSQL + a mock OAuth2 server (issues JWTs) + the sample app.
+#   docker compose up -d --build
+#   ./docker/smoke-test.sh
+#   docker compose down -v
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: audit
+      POSTGRES_USER: audit
+      POSTGRES_PASSWORD: audit
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U audit -d audit"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+
+  # Token endpoint: http://localhost:8081/default/token (see docker/mock-oauth2.json for the test users)
+  mock-oauth2:
+    image: ghcr.io/navikt/mock-oauth2-server:2.1.10
+    environment:
+      JSON_CONFIG_PATH: /config/mock-oauth2.json
+    volumes:
+      - ./docker/mock-oauth2.json:/config/mock-oauth2.json:ro
+    ports:
+      - "8081:8080"
+
+  audit:
+    build:
+      context: .
+      target: runtime
+    depends_on:
+      postgres:
+        condition: service_healthy
+      mock-oauth2:
+        condition: service_started
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+      DATABASE_URL: jdbc:postgresql://postgres:5432/audit
+      DATABASE_USERNAME: audit
+      DATABASE_PASSWORD: audit
+      JWK_SET_URI: http://mock-oauth2:8080/default/jwks
+      AUDIT_TENANCY_ENABLED: "true"        # tenant comes from the JWT claim tenant_id
+    ports:
+      - "8080:8080"

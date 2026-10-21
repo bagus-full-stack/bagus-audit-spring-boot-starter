@@ -1,5 +1,5 @@
 -- ============================================================
--- Audit Log — initial schema
+-- Audit Log â€” initial schema
 -- Version : V1
 -- Author  : Assami Baga <bagaassami009@gmail.com>
 -- ============================================================
@@ -21,23 +21,3 @@ CREATE TABLE audit_log (
 
     CONSTRAINT pk_audit_log PRIMARY KEY (id)
 );
-
--- Keyset pagination index (supports cursor-based traversal)
-CREATE INDEX idx_audit_log_keyset
-    ON audit_log (created_at DESC, id DESC)
-    WHERE deleted_at IS NULL;
-
--- Service name filter
-CREATE INDEX idx_audit_log_service_name
-    ON audit_log (service_name)
-    WHERE deleted_at IS NULL;
-
--- Multi-tenancy filter + keyset order: one tenant's newest entries, no sort step
-CREATE INDEX idx_audit_log_tenant_keyset
-    ON audit_log (tenant_id, created_at DESC, id DESC)
-    WHERE deleted_at IS NULL;
-
--- GDPR scheduled erasure scan
-CREATE INDEX idx_audit_log_gdpr
-    ON audit_log (gdpr_erased_at)
-    WHERE gdpr_erased_at IS NOT NULL;

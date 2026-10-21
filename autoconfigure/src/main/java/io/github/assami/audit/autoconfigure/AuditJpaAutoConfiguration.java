@@ -5,6 +5,7 @@ import io.github.assami.audit.adapter.jpa.AuditLogJpaRepository;
 import io.github.assami.audit.adapter.jpa.JpaAuditRepository;
 import io.github.assami.audit.port.AuditRepository;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
+import org.springframework.boot.autoconfigure.AutoConfigurationPackage;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.context.annotation.Bean;
@@ -18,6 +19,8 @@ import jakarta.persistence.EntityManager;
  */
 @AutoConfiguration(before = AuditAutoConfiguration.class)
 @ConditionalOnClass({EntityManager.class, AuditLogEntity.class})
+// Registers AuditLogEntity with the host app's entity scan (its own package is not under the host's).
+@AutoConfigurationPackage(basePackages = "io.github.assami.audit.adapter.jpa")
 @EnableJpaRepositories(
         basePackages = "io.github.assami.audit.adapter.jpa",
         entityManagerFactoryRef = "entityManagerFactory",

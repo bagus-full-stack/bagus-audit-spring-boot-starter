@@ -1,0 +1,19 @@
+{
+  "interactiveLogin": false,
+  "tokenCallbacks": [
+    {
+      "issuerId": "default",
+      "tokenExpiry": 3600,
+      "requestMappings": [
+        { "requestParam": "client_id", "match": "admin-acme",
+          "claims": { "sub": "admin-acme", "roles": ["AUDIT_ADMIN"], "tenant_id": "acme" } },
+        { "requestParam": "client_id", "match": "writer-acme",
+          "claims": { "sub": "writer-acme", "roles": ["AUDIT_WRITE"], "tenant_id": "acme" } },
+        { "requestParam": "client_id", "match": "reader-acme",
+          "claims": { "sub": "reader-acme", "roles": ["AUDIT_READ"], "tenant_id": "acme" } },
+        { "requestParam": "client_id", "match": "reader-globex",
+          "claims": { "sub": "reader-globex", "roles": ["AUDIT_READ"], "tenant_id": "globex" } }
+      ]
+    }
+  ]
+}

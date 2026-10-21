@@ -1,4 +1,4 @@
-spring:
+﻿spring:
   application:
     name: audit-sample
 
@@ -20,13 +20,13 @@ spring:
 
   flyway:
     enabled: true
-    locations: classpath:db/migration
+    locations: classpath:db/migration,classpath:db/vendor/{vendor}
 
   h2:
     console:
       enabled: true               # http://localhost:8080/h2-console
 
-# ── Audit starter configuration ──────────────────────────────────────────────
+# â”€â”€ Audit starter configuration â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 audit:
   enabled: true
   name: order-service             # Written as service_name on every log entry
@@ -40,7 +40,7 @@ audit:
   api:
     base-path: /api/audit
 
-# ── Actuator ──────────────────────────────────────────────────────────────────
+# â”€â”€ Actuator â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 management:
   endpoints:
     web:
@@ -52,7 +52,7 @@ management:
       probes:
         enabled: true             # /actuator/health/liveness  /readiness
 
-# ── Logging ───────────────────────────────────────────────────────────────────
+# â”€â”€ Logging â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 logging:
   level:
     io.github.assami.audit: DEBUG
@@ -66,6 +66,7 @@ spring:
 
   datasource:
     url: ${DATABASE_URL}
+    driver-class-name: org.postgresql.Driver   # the default profile pins the H2 driver
     username: ${DATABASE_USERNAME}
     password: ${DATABASE_PASSWORD}
     hikari:
@@ -76,6 +77,10 @@ spring:
     properties:
       hibernate:
         dialect: org.hibernate.dialect.PostgreSQLDialect
+
+  h2:
+    console:
+      enabled: false
 
 audit:
   security:
