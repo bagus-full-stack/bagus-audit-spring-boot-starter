@@ -130,8 +130,9 @@ class AuditControllerTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"entries\":[{\"action\":\"B1\"},{\"action\":\"B2\"}]}"))
                 .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.succeeded").value(2))
-                .andExpect(jsonPath("$.results.length()").value(2));
+                .andExpect(jsonPath("$.length()").value(2))
+                .andExpect(jsonPath("$[0].action").value("B1"))
+                .andExpect(jsonPath("$[1].action").value("B2"));
     }
 
     @Test

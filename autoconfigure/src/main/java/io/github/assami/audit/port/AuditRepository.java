@@ -64,7 +64,17 @@ public interface AuditRepository {
 
     /**
      * Count the total number of non-deleted entries.
-     * Used for Micrometer gauge {@code audit.repository.size}.
+     * A full count: do not call it on a hot path.
      */
     long count();
+
+    /**
+     * Permanently remove entries that were soft-deleted before {@code before}.
+     * Adapters that never keep soft-deleted rows can leave the default.
+     *
+     * @return the number of rows removed
+     */
+    default long purgeDeleted(java.time.Instant before) {
+        return 0;
+    }
 }

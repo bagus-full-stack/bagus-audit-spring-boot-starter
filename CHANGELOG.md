@@ -15,6 +15,12 @@ Versioning follows [Semantic Versioning](https://semver.org/).
   sample end-to-end tests on H2 and on PostgreSQL (Testcontainers).
 
 ### Changed
+- **Breaking:** `POST /batch` returns the list of saved entries directly; the `{results, succeeded, failed}` wrapper
+  is gone (`failed` was always 0).
+- Optional retention: `audit.retention.deleted-days` and `audit.retention.cron` purge old soft-deleted rows.
+  New port method `AuditRepository.purgeDeleted(Instant)` (default: does nothing).
+- Sample, PostgreSQL: migration `V3` converts the instant columns to `TIMESTAMPTZ` (existing values read as UTC).
+  I could not reproduce a cursor error with plain `TIMESTAMP` in a daylight-saving zone, so this is preventive.
 - Metrics: the `audit.repository.size` gauge (a full `COUNT(*)` on every scrape) is replaced by the counters
   `audit.entries.created`, `audit.entries.deleted` and `audit.entries.erased`. `AuditService.count()` is removed.
 - A listener that throws no longer turns a committed write into an error response; it is logged.

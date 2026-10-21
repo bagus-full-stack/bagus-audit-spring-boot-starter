@@ -88,7 +88,7 @@ Base path: `/api/audit` (change it with `audit.api.base-path`).
 | Method and path | Role | Result |
 |---|---|---|
 | `POST /` | `AUDIT_WRITE` or `AUDIT_ADMIN` | `201` with the created entry |
-| `POST /batch` | `AUDIT_WRITE` or `AUDIT_ADMIN` | `201`, 1 to 500 entries saved in one transaction |
+| `POST /batch` | `AUDIT_WRITE` or `AUDIT_ADMIN` | `201` with the list of saved entries; 1 to 500 entries in one transaction |
 | `GET /` | `AUDIT_READ` or `AUDIT_ADMIN` | `200` page of entries |
 | `GET /{id}` | `AUDIT_READ` or `AUDIT_ADMIN` | `200` entry, or `404` |
 | `DELETE /{id}` | `AUDIT_ADMIN` | `204`, soft delete |
@@ -167,6 +167,11 @@ class MyEraser implements AuditGdprEraser {
 - **In-memory** (`starter` only): used when no other `AuditRepository` bean exists. All data is lost on restart and
   memory grows without limit. Development only.
 - To use another store, define your own `AuditRepository` bean (the port is in `io.github.assami.audit.port`).
+- **Retention**: soft-deleted rows stay forever by default. Set `audit.retention.deleted-days` to a number above 0
+  and a job (cron `audit.retention.cron`, default `0 30 3 * * *`) removes rows deleted longer ago than that. It is
+  a single `DELETE` for all tenants; on a very large table, run it off-peak.
+- **Time zones (PostgreSQL)**: the sample's migration `V3` stores instants as `TIMESTAMPTZ`. It reads existing values
+  as UTC, so check that assumption before applying it to data written with another session time zone.
 
 ## Configuration
 
@@ -175,6 +180,8 @@ class MyEraser implements AuditGdprEraser {
 | `audit.enabled` | `true` | Master switch for the whole starter |
 | `audit.name` | `unknown-service` | Written as `service_name` on every entry |
 | `audit.api.base-path` | `/api/audit` | Base path of the REST API |
+| `audit.retention.deleted-days` | `0` | Days to keep soft-deleted entries; `0` keeps them forever |
+| `audit.retention.cron` | `0 30 3 * * *` | When the purge job runs (only if `deleted-days` is above 0) |
 | `audit.security.jwk-set-uri` | none | JWKS URL used when the application defines no `JwtDecoder` |
 | `audit.security.issuer` | none | Required `iss` claim (only for the decoder built from `jwk-set-uri`) |
 | `audit.security.audience` | none | Required value in the `aud` claim (same limit) |

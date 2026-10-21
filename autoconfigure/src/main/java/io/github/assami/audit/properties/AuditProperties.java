@@ -41,7 +41,13 @@ public class AuditProperties {
     @NestedConfigurationProperty
     private ApiProperties api = new ApiProperties();
 
+    @NestedConfigurationProperty
+    private RetentionProperties retention = new RetentionProperties();
+
     // ── Getters / setters ────────────────────────────────────────────────────
+
+    public RetentionProperties getRetention()                   { return retention; }
+    public void setRetention(RetentionProperties retention)     { this.retention = retention; }
 
     public boolean isEnabled()                  { return enabled; }
     public void setEnabled(boolean enabled)     { this.enabled = enabled; }
@@ -102,6 +108,19 @@ public class AuditProperties {
         public void setJwtClaim(String jwtClaim)         { this.jwtClaim = jwtClaim; }
         public boolean isEnforceIsolation()              { return enforceIsolation; }
         public void setEnforceIsolation(boolean v)       { this.enforceIsolation = v; }
+    }
+
+    public static class RetentionProperties {
+        /** Days to keep soft-deleted entries before they are removed for good. 0 keeps them forever. */
+        private int deletedDays = 0;
+
+        /** Spring cron expression for the purge job. */
+        private String cron = "0 30 3 * * *";
+
+        public int getDeletedDays()                  { return deletedDays; }
+        public void setDeletedDays(int deletedDays)  { this.deletedDays = deletedDays; }
+        public String getCron()                      { return cron; }
+        public void setCron(String cron)             { this.cron = cron; }
     }
 
     public static class ApiProperties {

@@ -85,8 +85,7 @@ class ObservabilityAndConfigTest {
                 io.github.assami.audit.model.AuditPage.class, io.github.assami.audit.model.AuditQuery.class,
                 io.github.assami.audit.model.AuditLevel.class,
                 AuditController.CreateAuditRequest.class, AuditController.AuditLogResponse.class,
-                AuditController.AuditPageResponse.class, AuditController.BatchAuditRequest.class,
-                AuditController.BatchAuditResponse.class}) {
+                AuditController.AuditPageResponse.class, AuditController.BatchAuditRequest.class}) {
             assertThat(RuntimeHintsPredicates.reflection().onType(type)).as(type.getSimpleName()).accepts(hints);
         }
     }

@@ -50,6 +50,22 @@ class JpaAuditRepositoryTest {
     }
 
     @Test
+    void purgeDeleted_removesSoftDeletedRowsOlderThanTheCutoff_andKeepsTheRest() {
+        AuditLog gone = repo.save(log("GONE").build());
+        AuditLog live = repo.save(log("LIVE").build());
+        flushAndClear();
+        repo.softDelete(gone.getId());
+        flushAndClear();
+
+        assertThat(repo.purgeDeleted(Instant.now().minusSeconds(3600))).as("cutoff before the deletion").isZero();
+        assertThat(repo.purgeDeleted(Instant.now().plusSeconds(60))).as("cutoff after the deletion").isEqualTo(1);
+        flushAndClear();
+
+        assertThat(repo.findById(live.getId())).isPresent();
+        assertThat(jpa.count()).isEqualTo(1);
+    }
+
+    @Test
     void save_insertsNewRow_withVersionAssignedByHibernate() {
         AuditLog saved = repo.save(log("LOGIN").payload("p").createdBy("jane").build());
         flushAndClear();

@@ -101,6 +101,13 @@ public class InMemoryAuditRepository implements AuditRepository {
     }
 
     @Override
+    public long purgeDeleted(Instant before) {
+        long sizeBefore = store.size();
+        store.values().removeIf(l -> l.isDeleted() && l.getDeletedAt().isBefore(before));
+        return sizeBefore - store.size();
+    }
+
+    @Override
     public long count() {
         return store.values().stream().filter(l -> !l.isDeleted()).count();
     }

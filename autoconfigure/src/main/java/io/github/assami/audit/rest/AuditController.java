@@ -14,7 +14,6 @@ import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
-import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -65,7 +64,8 @@ public class AuditController {
                  consumes = MediaType.APPLICATION_JSON_VALUE,
                  produces = MediaType.APPLICATION_JSON_VALUE)
     @PreAuthorize("hasRole('AUDIT_WRITE') or hasRole('AUDIT_ADMIN')")
-    public ResponseEntity<BatchAuditResponse> createBatch(@Valid @RequestBody BatchAuditRequest req) {
+    @ResponseStatus(HttpStatus.CREATED)
+    public List<AuditLogResponse> createBatch(@Valid @RequestBody BatchAuditRequest req) {
         String actor = currentActor();
         List<AuditLog.Builder> builders = req.entries().stream()
                 .map(e -> AuditLog.builder()
@@ -76,11 +76,8 @@ public class AuditController {
                         .lastModifiedBy(actor))
                 .toList();
 
-        List<AuditLog> saved = service.createBatch(builders);
-        List<AuditLogResponse> responses = saved.stream().map(AuditLogResponse::from).toList();
         // All-or-nothing: the batch is one transaction, so it never partially fails.
-        return ResponseEntity.status(HttpStatus.CREATED)
-                .body(new BatchAuditResponse(responses, responses.size(), 0));
+        return service.createBatch(builders).stream().map(AuditLogResponse::from).toList();
     }
 
     /** The authenticated caller, never a name supplied in the request body. */
@@ -155,12 +152,6 @@ public class AuditController {
 
     public record BatchAuditRequest(
             @NotEmpty @Size(max = 500) List<@Valid @NotNull CreateAuditRequest> entries
-    ) {}
-
-    public record BatchAuditResponse(
-            List<AuditLogResponse> results,
-            int succeeded,
-            int failed
     ) {}
 
     public record AuditPageResponse(

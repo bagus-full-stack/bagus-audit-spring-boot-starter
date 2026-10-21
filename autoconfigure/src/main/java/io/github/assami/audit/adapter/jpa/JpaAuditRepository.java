@@ -107,6 +107,11 @@ public class JpaAuditRepository implements AuditRepository {
     }
 
     @Override
+    public long purgeDeleted(Instant before) {
+        return jpa.purgeDeletedBefore(before);
+    }
+
+    @Override
     public long count() {
         return jpa.countActive();
     }

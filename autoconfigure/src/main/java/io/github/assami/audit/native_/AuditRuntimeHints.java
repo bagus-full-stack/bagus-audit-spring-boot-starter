@@ -29,8 +29,7 @@ public class AuditRuntimeHints implements RuntimeHintsRegistrar {
                 AuditController.CreateAuditRequest.class,
                 AuditController.AuditLogResponse.class,
                 AuditController.AuditPageResponse.class,
-                AuditController.BatchAuditRequest.class,
-                AuditController.BatchAuditResponse.class
+                AuditController.BatchAuditRequest.class
         }) {
             hints.reflection().registerType(type, MemberCategory.values());
         }

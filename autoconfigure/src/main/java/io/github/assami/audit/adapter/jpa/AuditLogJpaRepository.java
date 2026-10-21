@@ -26,6 +26,13 @@ public interface AuditLogJpaRepository
            """)
     void gdprErase(@Param("id") String id, @Param("erasedAt") Instant erasedAt);
 
+    // ── Retention ─────────────────────────────────────────────────────────────
+
+    /** Native on purpose: HQL would add the soft-delete restriction and match nothing. */
+    @Modifying
+    @Query(value = "DELETE FROM audit_log WHERE deleted_at IS NOT NULL AND deleted_at < :before", nativeQuery = true)
+    int purgeDeletedBefore(@Param("before") Instant before);
+
     // ── Count non-deleted ─────────────────────────────────────────────────────
 
     @Query("SELECT COUNT(a) FROM AuditLogEntity a WHERE a.deletedAt IS NULL")

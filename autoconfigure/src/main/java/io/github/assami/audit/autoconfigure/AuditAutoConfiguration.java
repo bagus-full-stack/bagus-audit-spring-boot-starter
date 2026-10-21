@@ -3,6 +3,10 @@ package io.github.assami.audit.autoconfigure;
 import io.github.assami.audit.adapter.inmemory.InMemoryAuditRepository;
 import io.github.assami.audit.condition.ConditionalOnAuditEnabled;
 import io.github.assami.audit.native_.AuditRuntimeHints;
+import io.github.assami.audit.retention.AuditPurgeJob;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnExpression;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.scheduling.annotation.EnableScheduling;
 import io.github.assami.audit.observability.AuditHealthIndicator;
 import io.github.assami.audit.observability.AuditMetrics;
 import io.github.assami.audit.port.AuditGdprEraser;
@@ -98,6 +102,20 @@ public class AuditAutoConfiguration {
             @org.springframework.beans.factory.annotation.Qualifier("handlerExceptionResolver")
             org.springframework.web.servlet.HandlerExceptionResolver exceptionResolver) {
         return new AuditTenantFilter(properties, exceptionResolver);
+    }
+
+    // ── Retention (opt-in) ────────────────────────────────────────────────────
+
+    @Configuration(proxyBeanMethods = false)
+    @EnableScheduling
+    @ConditionalOnExpression("${audit.retention.deleted-days:0} > 0")
+    static class RetentionConfiguration {
+
+        @Bean
+        @ConditionalOnMissingBean
+        AuditPurgeJob auditPurgeJob(AuditService service, AuditProperties properties) {
+            return new AuditPurgeJob(service, properties.getRetention().getDeletedDays());
+        }
     }
 
     // ── Observability ─────────────────────────────────────────────────────────

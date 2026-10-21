@@ -23,7 +23,9 @@ import static org.assertj.core.api.Assertions.assertThat;
         "audit.security.jwk-set-uri=http://localhost:1/jwks",
         "audit.tenancy.enabled=true",
         "spring.jpa.properties.hibernate.dialect=org.hibernate.dialect.PostgreSQLDialect",
-        "spring.datasource.driver-class-name=org.postgresql.Driver"})
+        "spring.datasource.driver-class-name=org.postgresql.Driver",
+        // A zone with daylight saving: every test runs where a plain TIMESTAMP column would be ambiguous.
+        "spring.datasource.hikari.connection-init-sql=SET TIME ZONE 'Europe/Paris'"})
 @AutoConfigureMockMvc
 class PostgresIntegrationTest {
 
@@ -46,6 +48,50 @@ class PostgresIntegrationTest {
                 "select indexname from pg_indexes where tablename = 'audit_log'", String.class);
 
         assertThat(indexes).contains("idx_audit_log_keyset", "idx_audit_log_tenant_keyset", "idx_audit_log_service_name");
+    }
+
+    @Autowired io.github.assami.audit.port.AuditRepository repository;
+
+    @Test
+    void instantColumns_areTimestamptz() {
+        var types = jdbc.queryForList("select data_type from information_schema.columns where table_name = 'audit_log' "
+                + "and column_name in ('created_at','updated_at','deleted_at','gdpr_erased_at')", String.class);
+
+        assertThat(types).hasSize(4).containsOnly("timestamp with time zone");
+    }
+
+    @Test
+    void instantsInTheRepeatedDaylightSavingHour_keepTheirIdentityAndOrder() {
+        // 2026-10-25 in Paris: 02:30 happens twice (00:30Z and 01:30Z).
+        var first = java.time.Instant.parse("2026-10-25T00:30:00Z");
+        var second = java.time.Instant.parse("2026-10-25T01:30:00Z");
+        String a = repository.save(io.github.assami.audit.model.AuditLog.builder().serviceName("dst").action("DST")
+                .id("dst-a").createdAt(first).build()).getId();
+        String b = repository.save(io.github.assami.audit.model.AuditLog.builder().serviceName("dst").action("DST")
+                .id("dst-b").createdAt(second).build()).getId();
+
+        var page = repository.findAll(io.github.assami.audit.model.AuditQuery.builder().action("DST").pageSize(1).build());
+        var next = repository.findAll(io.github.assami.audit.model.AuditQuery.builder().action("DST").pageSize(1)
+                .cursor(page.nextCursor()).build());
+
+        assertThat(page.content()).extracting(io.github.assami.audit.model.AuditLog::getId).containsExactly(b);
+        assertThat(page.content().get(0).getCreatedAt()).isEqualTo(second);
+        assertThat(next.content()).extracting(io.github.assami.audit.model.AuditLog::getId).containsExactly(a);
+        assertThat(next.content().get(0).getCreatedAt()).isEqualTo(first);
+    }
+
+    @Test
+    void purgeDeleted_removesOnlyOldDeletedRows() {
+        jdbc.update("insert into audit_log (id, service_name, action, deleted_at) values "
+                + "('purge-old','s','PURGE', now() - interval '40 days'),"
+                + "('purge-new','s','PURGE', now() - interval '1 day'),"
+                + "('purge-live','s','PURGE', null)");
+
+        long removed = repository.purgeDeleted(java.time.Instant.now().minus(java.time.Duration.ofDays(30)));
+
+        assertThat(removed).isGreaterThanOrEqualTo(1);
+        assertThat(jdbc.queryForList("select id from audit_log where action = 'PURGE' order by id", String.class))
+                .containsExactly("purge-live", "purge-new");
     }
 
     @Test

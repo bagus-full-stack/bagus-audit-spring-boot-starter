@@ -109,6 +109,15 @@ public class AuditService {
         log.info("GDPR erasure performed on audit log: {}", id);
     }
 
+    // ── Retention ────────────────────────────────────────────────────────────
+
+    /** Permanently removes entries soft-deleted more than {@code olderThan} ago, for every tenant. */
+    public long purgeDeleted(java.time.Duration olderThan) {
+        long removed = repository.purgeDeleted(java.time.Instant.now().minus(olderThan));
+        if (removed > 0) log.info("Purged {} soft-deleted audit entries older than {}", removed, olderThan);
+        return removed;
+    }
+
     /**
      * The row is already committed when events go out, so a failing listener must not turn
      * a successful write into an error response (the caller would retry and duplicate it).
