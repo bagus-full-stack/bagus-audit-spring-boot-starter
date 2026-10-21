@@ -1,0 +1,208 @@
+{
+  "realm": "audit",
+  "enabled": true,
+  "sslRequired": "none",
+  "roles": {
+    "realm": [
+      {
+        "name": "AUDIT_READ"
+      },
+      {
+        "name": "AUDIT_WRITE"
+      },
+      {
+        "name": "AUDIT_ADMIN"
+      }
+    ]
+  },
+  "clients": [
+    {
+      "clientId": "acme",
+      "enabled": true,
+      "publicClient": true,
+      "directAccessGrantsEnabled": true,
+      "standardFlowEnabled": false,
+      "protocolMappers": [
+        {
+          "name": "audience",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-audience-mapper",
+          "config": {
+            "included.custom.audience": "audit-api",
+            "access.token.claim": "true",
+            "id.token.claim": "false"
+          }
+        },
+        {
+          "name": "tenant",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-hardcoded-claim-mapper",
+          "config": {
+            "claim.name": "tenant_id",
+            "claim.value": "acme",
+            "jsonType.label": "String",
+            "access.token.claim": "true",
+            "id.token.claim": "false",
+            "userinfo.token.claim": "false"
+          }
+        }
+      ]
+    },
+    {
+      "clientId": "globex",
+      "enabled": true,
+      "publicClient": true,
+      "directAccessGrantsEnabled": true,
+      "standardFlowEnabled": false,
+      "protocolMappers": [
+        {
+          "name": "audience",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-audience-mapper",
+          "config": {
+            "included.custom.audience": "audit-api",
+            "access.token.claim": "true",
+            "id.token.claim": "false"
+          }
+        },
+        {
+          "name": "tenant",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-hardcoded-claim-mapper",
+          "config": {
+            "claim.name": "tenant_id",
+            "claim.value": "globex",
+            "jsonType.label": "String",
+            "access.token.claim": "true",
+            "id.token.claim": "false",
+            "userinfo.token.claim": "false"
+          }
+        }
+      ]
+    },
+    {
+      "clientId": "other",
+      "enabled": true,
+      "publicClient": true,
+      "directAccessGrantsEnabled": true,
+      "standardFlowEnabled": false,
+      "protocolMappers": [
+        {
+          "name": "audience",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-audience-mapper",
+          "config": {
+            "included.custom.audience": "billing-api",
+            "access.token.claim": "true",
+            "id.token.claim": "false"
+          }
+        },
+        {
+          "name": "tenant",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-hardcoded-claim-mapper",
+          "config": {
+            "claim.name": "tenant_id",
+            "claim.value": "acme",
+            "jsonType.label": "String",
+            "access.token.claim": "true",
+            "id.token.claim": "false",
+            "userinfo.token.claim": "false"
+          }
+        }
+      ]
+    }
+  ],
+  "users": [
+    {
+      "username": "admin-acme",
+      "enabled": true,
+      "emailVerified": true,
+      "email": "admin-acme@example.test",
+      "firstName": "admin-acme",
+      "lastName": "Test",
+      "credentials": [
+        {
+          "type": "password",
+          "value": "x",
+          "temporary": false
+        }
+      ],
+      "realmRoles": [
+        "AUDIT_ADMIN"
+      ]
+    },
+    {
+      "username": "writer-acme",
+      "enabled": true,
+      "emailVerified": true,
+      "email": "writer-acme@example.test",
+      "firstName": "writer-acme",
+      "lastName": "Test",
+      "credentials": [
+        {
+          "type": "password",
+          "value": "x",
+          "temporary": false
+        }
+      ],
+      "realmRoles": [
+        "AUDIT_WRITE"
+      ]
+    },
+    {
+      "username": "reader-acme",
+      "enabled": true,
+      "emailVerified": true,
+      "email": "reader-acme@example.test",
+      "firstName": "reader-acme",
+      "lastName": "Test",
+      "credentials": [
+        {
+          "type": "password",
+          "value": "x",
+          "temporary": false
+        }
+      ],
+      "realmRoles": [
+        "AUDIT_READ"
+      ]
+    },
+    {
+      "username": "reader-globex",
+      "enabled": true,
+      "emailVerified": true,
+      "email": "reader-globex@example.test",
+      "firstName": "reader-globex",
+      "lastName": "Test",
+      "credentials": [
+        {
+          "type": "password",
+          "value": "x",
+          "temporary": false
+        }
+      ],
+      "realmRoles": [
+        "AUDIT_READ"
+      ]
+    },
+    {
+      "username": "other-app",
+      "enabled": true,
+      "emailVerified": true,
+      "email": "other-app@example.test",
+      "firstName": "other-app",
+      "lastName": "Test",
+      "credentials": [
+        {
+          "type": "password",
+          "value": "x",
+          "temporary": false
+        }
+      ],
+      "realmRoles": [
+        "AUDIT_ADMIN"
+      ]
+    }
+  ]
+}

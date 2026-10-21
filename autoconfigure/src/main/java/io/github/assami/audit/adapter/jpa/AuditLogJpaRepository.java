@@ -30,8 +30,9 @@ public interface AuditLogJpaRepository
 
     /** Native on purpose: HQL would add the soft-delete restriction and match nothing. */
     @Modifying
-    @Query(value = "DELETE FROM audit_log WHERE deleted_at IS NOT NULL AND deleted_at < :before", nativeQuery = true)
-    int purgeDeletedBefore(@Param("before") Instant before);
+    @Query(value = "DELETE FROM audit_log WHERE id IN (SELECT id FROM audit_log "
+            + "WHERE deleted_at IS NOT NULL AND deleted_at < :before ORDER BY deleted_at LIMIT :limit)", nativeQuery = true)
+    int purgeDeletedBefore(@Param("before") Instant before, @Param("limit") int limit);
 
     // ── Count non-deleted ─────────────────────────────────────────────────────
 

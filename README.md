@@ -75,6 +75,8 @@ audit:
   name: order-service        # written as service_name on every entry
   security:
     jwk-set-uri: https://issuer.example.com/.well-known/jwks.json   # only if your app defines no JwtDecoder
+    issuer: https://issuer.example.com   # required with jwk-set-uri
+    audience: audit-api                  # recommended
 ```
 
 Create the `audit_log` table with the DDL in
@@ -121,8 +123,8 @@ Cursors are opaque; a malformed one gives `400`.
 - Endpoints are protected by a dedicated filter chain on the base path, plus `@PreAuthorize` on each method.
 - Authentication is an OAuth2 resource server (JWT). Roles are read as `ROLE_AUDIT_READ`, `ROLE_AUDIT_WRITE`, `ROLE_AUDIT_ADMIN`.
 - The `JwtDecoder` comes from your application. If you define none, set `audit.security.jwk-set-uri`.
-  That decoder checks signature and expiry only; also set `audit.security.issuer` and `audit.security.audience`,
-  or it accepts any token the identity provider signed for another application (a warning is logged at startup).
+  With `jwk-set-uri` the application refuses to start unless `audit.security.issuer` is set: otherwise a token the
+  identity provider signed for another application would pass. Set `audit.security.audience` too (a warning is logged without it).
 - `audit.security.roles-claim` names the claim that holds the roles. It is read by its exact name first, then as a
   dotted path into nested objects. A list or a space-separated string both work.
 
@@ -132,7 +134,8 @@ Cursors are opaque; a malformed one gives `400`.
 | Keycloak (realm roles) | `realm_access.roles` | nested path |
 | Auth0 | your namespaced claim, e.g. `https://app.example.com/roles` | exact name, dots allowed |
 
-  Only the mock server in `docker-compose.yml` has been tested; check your provider's real tokens before relying on it.
+  Tested with a mock OAuth2 server and a real Keycloak 26 (`docker-compose.keycloak.yml`); check your own provider's tokens.
+- `audit.security.principal-claim` (default `sub`) picks the claim stored as `created_by`. Keycloak's `sub` is a UUID: use `preferred_username`.
   With neither, the application starts, logs a warning, and every audit request is rejected.
 - Spring Boot drops its default security once any `SecurityFilterChain` exists. The starter adds a fallback chain
   (every other route requires authentication, HTTP basic and form login) to keep that default. Define your own chains
@@ -179,7 +182,7 @@ class MyEraser implements AuditGdprEraser {
 - To use another store, define your own `AuditRepository` bean (the port is in `io.github.assami.audit.port`).
 - **Retention**: soft-deleted rows stay forever by default. Set `audit.retention.deleted-days` to a number above 0
   and a job (cron `audit.retention.cron`, default `0 30 3 * * *`) removes rows deleted longer ago than that. It is
-  a single `DELETE` for all tenants; on a very large table, run it off-peak.
+  batches of `audit.retention.batch-size` rows (default 5000), each in its own transaction, for all tenants.
 - **Time zones (PostgreSQL)**: the sample's migration `V3` stores instants as `TIMESTAMPTZ`. It reads existing values
   as UTC, so check that assumption before applying it to data written with another session time zone.
 
@@ -192,8 +195,10 @@ class MyEraser implements AuditGdprEraser {
 | `audit.api.base-path` | `/api/audit` | Base path of the REST API |
 | `audit.retention.deleted-days` | `0` | Days to keep soft-deleted entries; `0` keeps them forever |
 | `audit.retention.cron` | `0 30 3 * * *` | When the purge job runs (only if `deleted-days` is above 0) |
+| `audit.retention.batch-size` | `5000` | Rows removed per statement by the purge job |
 | `audit.security.jwk-set-uri` | none | JWKS URL used when the application defines no `JwtDecoder` |
-| `audit.security.issuer` | none | Required `iss` claim (only for the decoder built from `jwk-set-uri`) |
+| `audit.security.issuer` | none | Required `iss` claim; **required** when `jwk-set-uri` is used |
+| `audit.security.principal-claim` | `sub` | Claim stored as `created_by` (Keycloak: `preferred_username`) |
 | `audit.security.audience` | none | Required value in the `aud` claim (same limit) |
 | `audit.tenancy.enabled` | `false` | Turn multi-tenancy on |
 | `audit.tenancy.strategy` | `JWT_CLAIM` | `JWT_CLAIM`, `HEADER` or `SUBDOMAIN` |
@@ -235,6 +240,15 @@ docker compose up -d --build        # PostgreSQL + mock OAuth2 (:8081) + sample 
 ./docker/smoke-test.sh              # 28 end-to-end checks (needs bash and curl)
 docker compose down -v
 ```
+
+Same stack with a real Keycloak (roles in `realm_access.roles`, tenant and audience from client mappers):
+
+```bash
+docker compose -f docker-compose.yml -f docker-compose.keycloak.yml up -d --build
+KEYCLOAK_TOKEN_URL=http://localhost:8082/realms/audit/protocol/openid-connect/token ./docker/smoke-test.sh
+```
+
+Load test (k6, 30 writers + 20 readers, 40 s; needs tokens in `WRITER` and `READER`): `docker/load-test.js`.
 
 The mock OAuth2 server issues tokens for `admin-acme`, `writer-acme`, `reader-acme` and `reader-globex`
 (see `docker/mock-oauth2.json`):

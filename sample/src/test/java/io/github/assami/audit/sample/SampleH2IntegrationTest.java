@@ -11,7 +11,8 @@ import org.springframework.test.web.servlet.MockMvc;
  * Fails if the Flyway schema and the JPA entity disagree.
  */
 @SpringBootTest(properties = {
-        "audit.security.jwk-set-uri=http://localhost:1/jwks",   // builds a decoder lazily, never called here
+        "audit.security.jwk-set-uri=http://localhost:1/jwks",
+        "audit.security.issuer=http://test-issuer",   // builds a decoder lazily, never called here
         "audit.tenancy.enabled=true"})
 @AutoConfigureMockMvc
 class SampleH2IntegrationTest {

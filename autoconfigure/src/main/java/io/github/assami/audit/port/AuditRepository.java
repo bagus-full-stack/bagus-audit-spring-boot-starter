@@ -69,12 +69,13 @@ public interface AuditRepository {
     long count();
 
     /**
-     * Permanently remove entries that were soft-deleted before {@code before}.
-     * Adapters that never keep soft-deleted rows can leave the default.
+     * Permanently remove at most {@code limit} entries that were soft-deleted before {@code before}.
+     * The caller repeats the call until it returns less than {@code limit}, so no single statement locks a huge
+     * range. Adapters that never keep soft-deleted rows can leave the default.
      *
      * @return the number of rows removed
      */
-    default long purgeDeleted(java.time.Instant before) {
+    default long purgeDeleted(java.time.Instant before, int limit) {
         return 0;
     }
 }

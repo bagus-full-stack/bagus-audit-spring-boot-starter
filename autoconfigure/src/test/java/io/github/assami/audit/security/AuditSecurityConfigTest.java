@@ -13,6 +13,36 @@ import static org.assertj.core.api.Assertions.assertThat;
 class AuditSecurityConfigTest {
 
     @Test
+    void principalClaim_decidesTheCallerName() {
+        AuditProperties props = new AuditProperties();
+        Jwt jwt = Jwt.withTokenValue("t").header("alg", "none").subject("3f9a-uuid").claim("preferred_username", "jane").build();
+
+        assertThat(AuditSecurityConfig.rolesClaimConverter(props).convert(jwt).getName()).isEqualTo("3f9a-uuid");
+
+        props.getSecurity().setPrincipalClaim("preferred_username");
+        assertThat(AuditSecurityConfig.rolesClaimConverter(props).convert(jwt).getName()).isEqualTo("jane");
+    }
+
+    @Test
+    void jwkSetUri_withoutIssuer_failsAtStartup() {
+        AuditProperties props = new AuditProperties();
+        props.getSecurity().setJwkSetUri("https://idp.example.com/jwks");
+
+        org.assertj.core.api.Assertions.assertThatThrownBy(() -> AuditSecurityConfig.jwkSetDecoder(props))
+                .isInstanceOf(IllegalStateException.class).hasMessageContaining("audit.security.issuer");
+    }
+
+    @Test
+    void jwkSetUri_withIssuer_buildsADecoder_andNoUriMeansNoDecoder() {
+        AuditProperties props = new AuditProperties();
+        assertThat(AuditSecurityConfig.jwkSetDecoder(props)).isNull();
+
+        props.getSecurity().setJwkSetUri("https://idp.example.com/jwks");
+        props.getSecurity().setIssuer("https://idp.example.com");
+        assertThat(AuditSecurityConfig.jwkSetDecoder(props)).isNotNull();
+    }
+
+    @Test
     void rolesClaimConverter_prefixesEachRoleWithROLE() {
         Jwt jwt = Jwt.withTokenValue("t").header("alg", "none")
                 .claim("roles", List.of("AUDIT_READ", "AUDIT_ADMIN")).build();

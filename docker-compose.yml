@@ -29,6 +29,8 @@ services:
     build:
       context: .
       target: runtime
+    # PostgreSQL reports healthy during its first-start initialisation, then restarts: retry instead of staying down.
+    restart: on-failure
     depends_on:
       postgres:
         condition: service_healthy

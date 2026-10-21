@@ -111,11 +111,21 @@ public class AuditService {
 
     // ── Retention ────────────────────────────────────────────────────────────
 
-    /** Permanently removes entries soft-deleted more than {@code olderThan} ago, for every tenant. */
+    /**
+     * Permanently removes entries soft-deleted more than {@code olderThan} ago, for every tenant.
+     * Works in batches of {@code audit.retention.batch-size}, each in its own transaction, so a large backlog
+     * never holds one long lock.
+     */
     public long purgeDeleted(java.time.Duration olderThan) {
-        long removed = repository.purgeDeleted(java.time.Instant.now().minus(olderThan));
-        if (removed > 0) log.info("Purged {} soft-deleted audit entries older than {}", removed, olderThan);
-        return removed;
+        java.time.Instant cutoff = java.time.Instant.now().minus(olderThan);
+        int batch = Math.max(1, properties.getRetention().getBatchSize());
+        long total = 0, removed;
+        do {
+            removed = repository.purgeDeleted(cutoff, batch);
+            total += removed;
+        } while (removed >= batch);
+        if (total > 0) log.info("Purged {} soft-deleted audit entries older than {}", total, olderThan);
+        return total;
     }
 
     /**

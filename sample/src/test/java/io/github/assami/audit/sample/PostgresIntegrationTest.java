@@ -21,6 +21,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 @Testcontainers(disabledWithoutDocker = true)
 @SpringBootTest(properties = {
         "audit.security.jwk-set-uri=http://localhost:1/jwks",
+        "audit.security.issuer=http://test-issuer",
         "audit.tenancy.enabled=true",
         "spring.jpa.properties.hibernate.dialect=org.hibernate.dialect.PostgreSQLDialect",
         "spring.datasource.driver-class-name=org.postgresql.Driver",
@@ -87,7 +88,7 @@ class PostgresIntegrationTest {
                 + "('purge-new','s','PURGE', now() - interval '1 day'),"
                 + "('purge-live','s','PURGE', null)");
 
-        long removed = repository.purgeDeleted(java.time.Instant.now().minus(java.time.Duration.ofDays(30)));
+        long removed = repository.purgeDeleted(java.time.Instant.now().minus(java.time.Duration.ofDays(30)), 1000);
 
         assertThat(removed).isGreaterThanOrEqualTo(1);
         assertThat(jdbc.queryForList("select id from audit_log where action = 'PURGE' order by id", String.class))

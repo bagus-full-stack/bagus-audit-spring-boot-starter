@@ -20,11 +20,19 @@ lacks() {
   case "$3" in *"$2"*) bad "$1" "unexpected $2" ;; *) ok "$1" ;; esac
 }
 
-token() { # token <client_id>
-  curl -s -X POST "$TOKEN_URL" \
-    -d "grant_type=client_credentials&client_id=$1&client_secret=secret" \
-    | tr -d ' \n\r' | sed -n 's/.*"access_token":"\([^"]*\)".*/\1/p'
+token() { # token <name>
+  if [ -n "${KEYCLOAK_TOKEN_URL:-}" ]; then
+    # Keycloak: the user logs in through the client that carries its tenant (acme, globex, other).
+    local client=${1##*-}; [ "$1" = other-app ] && client=other
+    curl -s -X POST "$KEYCLOAK_TOKEN_URL" -d "grant_type=password&client_id=$client&username=$1&password=x" \
+      | tr -d ' \n\r' | sed -n 's/.*"access_token":"\([^"]*\)".*/\1/p'
+  else
+    curl -s -X POST "$TOKEN_URL" \
+      -d "grant_type=client_credentials&client_id=$1&client_secret=secret" \
+      | tr -d ' \n\r' | sed -n 's/.*"access_token":"\([^"]*\)".*/\1/p'
+  fi
 }
+
 status() { # status <method> <url> <token> [json body]
   local method=$1 url=$2 tok=$3 body=${4:-}
   local args=(-s -o /dev/null -w '%{http_code}' -X "$method" "$url")

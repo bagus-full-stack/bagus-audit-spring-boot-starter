@@ -50,6 +50,19 @@ class JpaAuditRepositoryTest {
     }
 
     @Test
+    void purgeDeleted_respectsTheLimit() {
+        for (int i = 0; i < 3; i++) {
+            AuditLog saved = repo.save(log("D" + i).build());
+            flushAndClear();
+            repo.softDelete(saved.getId());
+            flushAndClear();
+        }
+
+        assertThat(repo.purgeDeleted(Instant.now().plusSeconds(60), 2)).isEqualTo(2);
+        assertThat(repo.purgeDeleted(Instant.now().plusSeconds(60), 2)).isEqualTo(1);
+    }
+
+    @Test
     void gdprErase_bumpsTheVersion() {
         AuditLog saved = repo.save(log("A").payload("p").build());
         flushAndClear();
@@ -69,8 +82,8 @@ class JpaAuditRepositoryTest {
         repo.softDelete(gone.getId());
         flushAndClear();
 
-        assertThat(repo.purgeDeleted(Instant.now().minusSeconds(3600))).as("cutoff before the deletion").isZero();
-        assertThat(repo.purgeDeleted(Instant.now().plusSeconds(60))).as("cutoff after the deletion").isEqualTo(1);
+        assertThat(repo.purgeDeleted(Instant.now().minusSeconds(3600), 1000)).as("cutoff before the deletion").isZero();
+        assertThat(repo.purgeDeleted(Instant.now().plusSeconds(60), 1000)).as("cutoff after the deletion").isEqualTo(1);
         flushAndClear();
 
         assertThat(repo.findById(live.getId())).isPresent();

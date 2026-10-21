@@ -79,6 +79,11 @@ public class AuditProperties {
         /** Required value in the {@code aud} claim. Only applies to the decoder built from {@code jwk-set-uri}. */
         private String audience;
 
+        /** Claim used as the caller name in {@code created_by}. Keycloak's {@code sub} is a UUID: use {@code preferred_username}. */
+        private String principalClaim = "sub";
+
+        public String getPrincipalClaim()                    { return principalClaim; }
+        public void setPrincipalClaim(String principalClaim) { this.principalClaim = principalClaim; }
         public String getIssuer()                    { return issuer; }
         public void setIssuer(String issuer)         { this.issuer = issuer; }
         public String getAudience()                  { return audience; }
@@ -114,11 +119,16 @@ public class AuditProperties {
         /** Days to keep soft-deleted entries before they are removed for good. 0 keeps them forever. */
         private int deletedDays = 0;
 
+        /** Rows removed per statement by the purge job; a large backlog is cleared in several short transactions. */
+        private int batchSize = 5000;
+
         /** Spring cron expression for the purge job. */
         private String cron = "0 30 3 * * *";
 
         public int getDeletedDays()                  { return deletedDays; }
         public void setDeletedDays(int deletedDays)  { this.deletedDays = deletedDays; }
+        public int getBatchSize()                    { return batchSize; }
+        public void setBatchSize(int batchSize)      { this.batchSize = batchSize; }
         public String getCron()                      { return cron; }
         public void setCron(String cron)             { this.cron = cron; }
     }

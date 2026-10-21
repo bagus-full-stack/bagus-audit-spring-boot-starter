@@ -1,0 +1,27 @@
+# Same stack, but tokens come from a real Keycloak instead of the mock OAuth2 server.
+#   docker compose -f docker-compose.yml -f docker-compose.keycloak.yml up -d --build
+#   KEYCLOAK_TOKEN_URL=http://localhost:8082/realms/audit/protocol/openid-connect/token ./docker/smoke-test.sh
+# Keycloak puts the roles in realm_access.roles and the tenant/audience come from client mappers
+# (docker/keycloak-realm.json), so this checks audit.security.roles-claim against a real token layout.
+services:
+  keycloak:
+    image: quay.io/keycloak/keycloak:26.0.7
+    command: ["start-dev", "--import-realm"]
+    environment:
+      KC_BOOTSTRAP_ADMIN_USERNAME: admin
+      KC_BOOTSTRAP_ADMIN_PASSWORD: admin
+    volumes:
+      - ./docker/keycloak-realm.json:/opt/keycloak/data/import/realm.json:ro
+    ports:
+      - "8082:8080"
+
+  audit:
+    depends_on:
+      keycloak:
+        condition: service_started
+    environment:
+      JWK_SET_URI: http://keycloak:8080/realms/audit/protocol/openid-connect/certs
+      JWT_ISSUER: http://localhost:8082/realms/audit
+      JWT_AUDIENCE: audit-api
+      AUDIT_SECURITY_ROLES_CLAIM: realm_access.roles
+      AUDIT_SECURITY_PRINCIPAL_CLAIM: preferred_username   # Keycloak's sub is a UUID

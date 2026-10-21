@@ -1,0 +1,6 @@
+# Runs the GraalVM native binary instead of the JVM jar (combine with the Keycloak override if wanted).
+#   docker compose -f docker-compose.yml -f docker-compose.native.yml up -d --build
+services:
+  audit:
+    build:
+      target: runtime-native

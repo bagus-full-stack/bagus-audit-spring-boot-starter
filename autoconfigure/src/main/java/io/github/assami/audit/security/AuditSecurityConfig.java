@@ -113,6 +113,7 @@ public class AuditSecurityConfig {
     static JwtAuthenticationConverter rolesClaimConverter(AuditProperties properties) {
         String claim = properties.getSecurity().getRolesClaim();
         JwtAuthenticationConverter converter = new JwtAuthenticationConverter();
+        converter.setPrincipalClaimName(properties.getSecurity().getPrincipalClaim());
         converter.setJwtGrantedAuthoritiesConverter(jwt -> roles(jwt, claim).stream()
                 .map(role -> (GrantedAuthority) new SimpleGrantedAuthority("ROLE_" + role))
                 .toList());
@@ -145,13 +146,18 @@ public class AuditSecurityConfig {
         return s == null || s.isBlank();
     }
 
-    private static JwtDecoder jwkSetDecoder(AuditProperties properties) {
+    static JwtDecoder jwkSetDecoder(AuditProperties properties) {
         String uri = properties.getSecurity().getJwkSetUri();
         if (uri == null || uri.isBlank()) return null;
         AuditProperties.SecurityProperties security = properties.getSecurity();
-        if (isBlank(security.getIssuer()) || isBlank(security.getAudience())) {
-            log.warn("audit.security.jwk-set-uri is set without issuer and audience: any token signed by that "
-                    + "identity provider is accepted, including tokens issued for another application");
+        if (isBlank(security.getIssuer())) {
+            // Without an issuer check, a token signed by the same identity provider for another application is accepted.
+            throw new IllegalStateException("audit.security.jwk-set-uri requires audit.security.issuer. "
+                    + "Set the expected 'iss' claim, or define your own JwtDecoder bean.");
+        }
+        if (isBlank(security.getAudience())) {
+            log.warn("audit.security.audience is not set: tokens issued for another application of the same "
+                    + "issuer are accepted");
         }
         NimbusJwtDecoder decoder = NimbusJwtDecoder.withJwkSetUri(uri).build();
         decoder.setJwtValidator(tokenValidator(properties.getSecurity()));

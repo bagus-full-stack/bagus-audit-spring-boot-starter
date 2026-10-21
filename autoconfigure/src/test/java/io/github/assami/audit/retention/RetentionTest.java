@@ -41,11 +41,11 @@ class RetentionTest {
         repo.save(recent.softDelete(Instant.now().minus(Duration.ofDays(1))));
         repo.save(AuditLog.builder().serviceName("s").action("LIVE").build());
 
-        long removed = repo.purgeDeleted(Instant.now().minus(Duration.ofDays(30)));
+        long removed = repo.purgeDeleted(Instant.now().minus(Duration.ofDays(30)), 1000);
 
         assertThat(removed).isEqualTo(1);
         assertThat(repo.count()).isEqualTo(1);
-        assertThat(repo.purgeDeleted(Instant.now().plus(Duration.ofDays(1)))).as("the recent one goes later").isEqualTo(1);
+        assertThat(repo.purgeDeleted(Instant.now().plus(Duration.ofDays(1)), 1000)).as("the recent one goes later").isEqualTo(1);
         assertThat(repo.findAll(AuditQuery.builder().build()).content()).extracting(AuditLog::getAction).containsExactly("LIVE");
     }
 
@@ -63,7 +63,41 @@ class RetentionTest {
         deleted("A");
 
         new AuditPurgeJob(service, 30).run();
-        assertThat(repo.purgeDeleted(Instant.now().plusSeconds(60))).as("still inside the 30 day window").isEqualTo(1);
+        assertThat(repo.purgeDeleted(Instant.now().plusSeconds(60), 1000)).as("still inside the 30 day window").isEqualTo(1);
+    }
+
+    @Test
+    void service_purgesABacklogInBatches_eachWithItsOwnStatement() {
+        int[] calls = {0};
+        InMemoryAuditRepository counting = new InMemoryAuditRepository() {
+            @Override public long purgeDeleted(Instant before, int limit) {
+                calls[0]++;
+                assertThat(limit).isEqualTo(2);
+                return super.purgeDeleted(before, limit);
+            }
+        };
+        AuditProperties props = new AuditProperties();
+        props.setName("svc");
+        props.getRetention().setBatchSize(2);
+        AuditService svc = new AuditService(counting, e -> {}, props, Optional.empty());
+        for (int i = 0; i < 5; i++) {
+            svc.delete(svc.create(AuditLog.builder().action("A" + i)).getId());
+        }
+
+        assertThat(svc.purgeDeleted(Duration.ofSeconds(-1))).isEqualTo(5);
+        assertThat(calls[0]).as("2 + 2 + 1, the last short batch ends the loop").isEqualTo(3);
+        assertThat(counting.count()).isZero();
+    }
+
+    @Test
+    void repository_respectsTheLimit() {
+        for (int i = 0; i < 3; i++) {
+            AuditLog l = repo.save(AuditLog.builder().serviceName("s").action("A" + i).build());
+            repo.save(l.softDelete(Instant.now().minusSeconds(60)));
+        }
+
+        assertThat(repo.purgeDeleted(Instant.now(), 2)).isEqualTo(2);
+        assertThat(repo.purgeDeleted(Instant.now(), 2)).isEqualTo(1);
     }
 
     @Test

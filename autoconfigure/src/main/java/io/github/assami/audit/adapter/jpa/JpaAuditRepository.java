@@ -85,6 +85,9 @@ public class JpaAuditRepository implements AuditRepository {
             if (query.getTo() != null)          p.add(cb.lessThanOrEqualTo(root.<Instant>get("createdAt"), query.getTo()));
             if (query.getCursor() != null) {
                 AuditCursor c = AuditCursor.decode(query.getCursor());
+                // The OR below cannot bound an index scan. Without this range, PostgreSQL walks the index from the
+                // newest row and filters: 436 ms for a page 40 days deep on 2M rows, 0.16 ms with it.
+                p.add(cb.lessThanOrEqualTo(root.<Instant>get("createdAt"), c.createdAt()));
                 p.add(cb.or(
                         cb.lessThan(root.<Instant>get("createdAt"), c.createdAt()),
                         cb.and(cb.equal(root.get("createdAt"), c.createdAt()),
@@ -107,8 +110,8 @@ public class JpaAuditRepository implements AuditRepository {
     }
 
     @Override
-    public long purgeDeleted(Instant before) {
-        return jpa.purgeDeletedBefore(before);
+    public long purgeDeleted(Instant before, int limit) {
+        return jpa.purgeDeletedBefore(before, limit);
     }
 
     @Override
