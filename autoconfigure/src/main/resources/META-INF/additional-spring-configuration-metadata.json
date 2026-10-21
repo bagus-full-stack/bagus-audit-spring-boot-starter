@@ -64,7 +64,7 @@
       "name": "audit.tenancy.enforce-isolation",
       "type": "java.lang.Boolean",
       "description": "Reject requests with a missing tenant identifier (HTTP 400) when enabled.",
-      "defaultValue": false
+      "defaultValue": true
     },
     {
       "name": "audit.rate-limit.enabled",

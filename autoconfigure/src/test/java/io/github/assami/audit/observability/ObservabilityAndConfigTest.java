@@ -91,7 +91,7 @@ class ObservabilityAndConfigTest {
         assertThat(p.getApi().getBasePath()).isEqualTo("/api/audit");
         assertThat(p.getTenancy().isEnabled()).isFalse();
         assertThat(p.getTenancy().getStrategy()).isEqualTo(TenantStrategy.JWT_CLAIM);
-        assertThat(p.getTenancy().isEnforceIsolation()).isFalse();
+        assertThat(p.getTenancy().isEnforceIsolation()).isTrue();
         assertThat(p.getSecurity().getRolesClaim()).isEqualTo("roles");
         assertThat(p.getSecurity().getJwkSetUri()).isNull();
     }

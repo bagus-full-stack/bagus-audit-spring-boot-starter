@@ -1,6 +1,7 @@
 package io.github.assami.audit.tenancy;
 
 import io.github.assami.audit.exception.MissingTenantException;
+import io.github.assami.audit.exception.TenantMismatchException;
 import io.github.assami.audit.properties.AuditProperties;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -40,6 +41,10 @@ public class AuditTenantFilter extends OncePerRequestFilter {
         try {
             String tenantId = resolveTenant(request);
             if (tenantId != null && !tenantId.isBlank()) {
+                if (isForeignTenant(tenantId)) {
+                    exceptionResolver.resolveException(request, response, null, new TenantMismatchException());
+                    return;
+                }
                 TenantContext.set(tenantId);
             } else if (properties.getTenancy().isEnforceIsolation()) {
                 exceptionResolver.resolveException(request, response, null, new MissingTenantException());
@@ -58,6 +63,17 @@ public class AuditTenantFilter extends OncePerRequestFilter {
             case JWT_CLAIM -> resolveFromJwt(tenancy.getJwtClaim());
             case SUBDOMAIN -> resolveFromSubdomain(request.getServerName());
         };
+    }
+
+    /**
+     * HEADER and SUBDOMAIN take the tenant from the request, which the caller controls. When the token also
+     * carries a tenant claim, the two must agree; otherwise any reader could name another tenant.
+     */
+    private boolean isForeignTenant(String requested) {
+        AuditProperties.TenancyProperties tenancy = properties.getTenancy();
+        if (tenancy.getStrategy() == TenantStrategy.JWT_CLAIM) return false;
+        String claimed = resolveFromJwt(tenancy.getJwtClaim());
+        return claimed != null && !claimed.equals(requested);
     }
 
     private String resolveFromJwt(String claimName) {

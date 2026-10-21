@@ -81,7 +81,9 @@ class ModelRobustnessTest {
         assertThat(original.isDeleted()).isFalse();
         assertThat(original.getPayload()).isEqualTo("secret");
         assertThat(deleted.isDeleted()).isTrue();
-        assertThat(deleted.getPayload()).isEqualTo("secret");
+        assertThat(deleted.getPayload()).isNull();
+        assertThat(deleted.getCreatedBy()).isNull();
+        assertThat(deleted.getLastModifiedBy()).isNull();
         assertThat(erased.getPayload()).isNull();
         assertThat(erased.getCreatedBy()).isNull();
         assertThat(erased.getLastModifiedBy()).isNull();

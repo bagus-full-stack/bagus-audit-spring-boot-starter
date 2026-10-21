@@ -2,6 +2,7 @@ package io.github.assami.audit.rest;
 
 import io.github.assami.audit.exception.AuditNotFoundException;
 import io.github.assami.audit.exception.MissingTenantException;
+import io.github.assami.audit.exception.TenantMismatchException;
 import org.springframework.http.*;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
@@ -27,6 +28,11 @@ public class AuditExceptionHandler extends ResponseEntityExceptionHandler {
     @ExceptionHandler(MissingTenantException.class)
     ProblemDetail handleMissingTenant(MissingTenantException ex) {
         return problem(HttpStatus.BAD_REQUEST, ex.getErrorCode(), ex.getMessage());
+    }
+
+    @ExceptionHandler(TenantMismatchException.class)
+    ProblemDetail handleTenantMismatch(TenantMismatchException ex) {
+        return problem(HttpStatus.FORBIDDEN, ex.getErrorCode(), ex.getMessage());
     }
 
     @ExceptionHandler(IllegalArgumentException.class)

@@ -35,7 +35,7 @@ audit:
     enabled: false                # Enable to test multi-tenancy
     strategy: JWT_CLAIM
     jwt-claim: tenant_id
-    enforce-isolation: false
+    enforce-isolation: true
 
   api:
     base-path: /api/audit

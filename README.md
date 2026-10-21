@@ -134,18 +134,21 @@ Disabled by default. Enable it with `audit.tenancy.enabled=true`.
 | Strategy | Tenant comes from |
 |---|---|
 | `JWT_CLAIM` (default) | Claim `audit.tenancy.jwt-claim` (default `tenant_id`) of the authenticated JWT |
-| `HEADER` | Request header `audit.tenancy.header-name` (default `X-Tenant-ID`). The caller chooses the value: use it only behind a gateway that sets it |
-| `SUBDOMAIN` | First label of the host name (`acme.example.com` gives `acme`) |
+| `HEADER` | Request header `audit.tenancy.header-name` (default `X-Tenant-ID`). The caller chooses the value: use it only behind a gateway that sets it. If the token also has the tenant claim, the two must match, else `403` |
+| `SUBDOMAIN` | First label of the host name (`acme.example.com` gives `acme`). Same claim check as `HEADER` |
 
 When a tenant is resolved, the service forces it on every operation: new entries get it, list queries are filtered by it
 (a `tenantId` request parameter is ignored), and reading, deleting or erasing another tenant's entry returns `404`.
-With `audit.tenancy.enforce-isolation=true`, an audit request without a tenant is rejected with `400`.
+By default (`audit.tenancy.enforce-isolation=true`), an audit request without a tenant is rejected with `400`.
+Setting it to `false` lets such a request see every tenant's entries.
 The filter only applies to the audit base path.
 
 ## GDPR erasure
 
 `DELETE /api/audit/{id}/personal-data` sets `payload`, `created_by` and `last_modified_by` to `null` and records
 `gdpr_erased_at`. The entry itself stays, so the audit trail keeps its shape.
+`DELETE /api/audit/{id}` clears the same three fields as it marks the entry deleted, because a deleted entry
+can no longer be reached to erase it.
 
 To run your own logic first (for example, purge a copy in another system), declare a bean implementing `AuditGdprEraser`:
 
@@ -175,7 +178,7 @@ class MyEraser implements AuditGdprEraser {
 | `audit.tenancy.strategy` | `JWT_CLAIM` | `JWT_CLAIM`, `HEADER` or `SUBDOMAIN` |
 | `audit.tenancy.header-name` | `X-Tenant-ID` | Header read by `HEADER` |
 | `audit.tenancy.jwt-claim` | `tenant_id` | Claim read by `JWT_CLAIM` |
-| `audit.tenancy.enforce-isolation` | `false` | Reject audit requests that have no tenant |
+| `audit.tenancy.enforce-isolation` | `true` | Reject audit requests that have no tenant |
 
 ## Events, metrics and health
 

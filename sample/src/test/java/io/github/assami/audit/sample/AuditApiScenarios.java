@@ -92,6 +92,10 @@ final class AuditApiScenarios {
         mvc.perform(delete("/api/audit/" + id).with(globexAdmin)).andExpect(status().isNotFound());
         mvc.perform(delete("/api/audit/" + id + "/personal-data").with(globexAdmin)).andExpect(status().isNotFound());
         mvc.perform(get("/api/audit/" + id).with(acmeAdmin)).andExpect(status().isOk());
+
+        // Isolation is on by default: a token with no tenant claim is refused, not given every tenant's data.
+        mvc.perform(get("/api/audit").with(user("nobody", null, "AUDIT_READ"))).andExpect(status().isBadRequest());
+        mvc.perform(get("/api/audit/" + id).with(user("nobody", null, "AUDIT_ADMIN"))).andExpect(status().isBadRequest());
     }
 
     static void security(MockMvc mvc) throws Exception {

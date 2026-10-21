@@ -14,6 +14,12 @@ Versioning follows [Semantic Versioning](https://semver.org/).
 - Robustness tests (model, service, tenant filter, in-memory concurrency, REST validation and role matrix),
   sample end-to-end tests on H2 and on PostgreSQL (Testcontainers).
 
+### Security
+- `audit.tenancy.enforce-isolation` now defaults to `true`: with tenancy on, a request without a tenant used to read every tenant's entries.
+- With `HEADER` or `SUBDOMAIN`, a tenant that differs from the token's tenant claim is rejected with `403`.
+- `DELETE` now clears `payload`, `created_by` and `last_modified_by` (a deleted entry could not be erased afterwards).
+  Rows deleted by an earlier version keep their data: run `UPDATE audit_log SET payload = NULL, created_by = NULL, last_modified_by = NULL WHERE deleted_at IS NOT NULL`.
+
 ### Fixed
 - The starter now registers `AuditLogEntity` with the host's entity scan (host apps outside `io.github.assami.audit` failed to start).
 - Sample: Flyway `V1` no longer uses partial indexes on H2 (vendor scripts under `db/vendor/{vendor}`), prod profile uses the PostgreSQL driver and disables the H2 console, `flyway-database-postgresql` added.

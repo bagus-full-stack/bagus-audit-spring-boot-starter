@@ -1,5 +1,7 @@
 package io.github.assami.audit.tenancy;
 
+import io.github.assami.audit.exception.MissingTenantException;
+import io.github.assami.audit.exception.TenantMismatchException;
 import io.github.assami.audit.properties.AuditProperties;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -82,6 +84,7 @@ class TenantFilterRobustnessTest {
 
     @Test
     void jwtWithoutTheClaim_hasNoTenant_whenNotEnforced() throws Exception {
+        props.getTenancy().setEnforceIsolation(false);
         SecurityContextHolder.getContext().setAuthentication(new JwtAuthenticationToken(
                 Jwt.withTokenValue("t").header("alg", "none").claim("sub", "u").build()));
 
@@ -90,6 +93,7 @@ class TenantFilterRobustnessTest {
 
     @Test
     void unauthenticatedRequest_hasNoJwtTenant() throws Exception {
+        props.getTenancy().setEnforceIsolation(false);
         assertThat(tenantSeenFor(new MockHttpServletRequest("GET", "/api/audit"))).isNull();
     }
 
@@ -100,6 +104,60 @@ class TenantFilterRobustnessTest {
                 Jwt.withTokenValue("t").header("alg", "none").claim("org", "globex").claim("tenant_id", "wrong").build()));
 
         assertThat(tenantSeenFor(new MockHttpServletRequest("GET", "/api/audit"))).isEqualTo("globex");
+    }
+
+    @Test
+    void isolationIsEnforcedByDefault_aTokenWithoutTenantIsRejected() throws Exception {
+        SecurityContextHolder.getContext().setAuthentication(new JwtAuthenticationToken(
+                Jwt.withTokenValue("t").header("alg", "none").claim("sub", "u").build()));
+        FilterChain chain = mock(FilterChain.class);
+
+        filter.doFilter(new MockHttpServletRequest("GET", "/api/audit"), new MockHttpServletResponse(), chain);
+
+        verify(resolver).resolveException(any(), any(), any(), any(MissingTenantException.class));
+        verify(chain, org.mockito.Mockito.never()).doFilter(any(), any());
+    }
+
+    @Test
+    void headerNamingAnotherTenantThanTheToken_isRejected() throws Exception {
+        props.getTenancy().setStrategy(TenantStrategy.HEADER);
+        SecurityContextHolder.getContext().setAuthentication(new JwtAuthenticationToken(
+                Jwt.withTokenValue("t").header("alg", "none").claim("tenant_id", "acme").build()));
+        MockHttpServletRequest req = new MockHttpServletRequest("GET", "/api/audit");
+        req.addHeader("X-Tenant-ID", "globex");
+        FilterChain chain = mock(FilterChain.class);
+
+        filter.doFilter(req, new MockHttpServletResponse(), chain);
+
+        verify(resolver).resolveException(any(), any(), any(), any(TenantMismatchException.class));
+        verify(chain, org.mockito.Mockito.never()).doFilter(any(), any());
+    }
+
+    @Test
+    void subdomainNamingAnotherTenantThanTheToken_isRejected() throws Exception {
+        props.getTenancy().setStrategy(TenantStrategy.SUBDOMAIN);
+        SecurityContextHolder.getContext().setAuthentication(new JwtAuthenticationToken(
+                Jwt.withTokenValue("t").header("alg", "none").claim("tenant_id", "acme").build()));
+        MockHttpServletRequest req = new MockHttpServletRequest("GET", "/api/audit");
+        req.setServerName("globex.example.com");
+
+        filter.doFilter(req, new MockHttpServletResponse(), mock(FilterChain.class));
+
+        verify(resolver).resolveException(any(), any(), any(), any(TenantMismatchException.class));
+    }
+
+    @Test
+    void headerMatchingTheToken_orATokenWithoutClaim_isAccepted() throws Exception {
+        props.getTenancy().setStrategy(TenantStrategy.HEADER);
+        MockHttpServletRequest req = new MockHttpServletRequest("GET", "/api/audit");
+        req.addHeader("X-Tenant-ID", "acme");
+        SecurityContextHolder.getContext().setAuthentication(new JwtAuthenticationToken(
+                Jwt.withTokenValue("t").header("alg", "none").claim("tenant_id", "acme").build()));
+        assertThat(tenantSeenFor(req)).isEqualTo("acme");
+
+        SecurityContextHolder.getContext().setAuthentication(new JwtAuthenticationToken(
+                Jwt.withTokenValue("t").header("alg", "none").claim("sub", "gateway").build()));
+        assertThat(tenantSeenFor(req)).isEqualTo("acme");
     }
 
     @Test

@@ -56,12 +56,15 @@ class PostgresIntegrationTest {
     @Test
     void softDelete_setsDeletedAt_insteadOfRemovingTheRow() throws Exception {
         var admin = AuditApiScenarios.user("admin", "acme", "AUDIT_ADMIN");
-        String id = AuditApiScenarios.create(mvc, admin, "{\"action\":\"SOFT\"}");
+        String id = AuditApiScenarios.create(mvc, admin, "{\"action\":\"SOFT\",\"payload\":\"PII\"}");
 
         mvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete("/api/audit/" + id).with(admin));
 
         assertThat(jdbc.queryForObject("select count(*) from audit_log where id = ? and deleted_at is not null",
                 Integer.class, id)).isEqualTo(1);
+        assertThat(jdbc.queryForObject("select count(*) from audit_log where id = ? "
+                + "and payload is null and created_by is null and last_modified_by is null", Integer.class, id))
+                .as("personal data is dropped on delete").isEqualTo(1);
     }
 
     @Test

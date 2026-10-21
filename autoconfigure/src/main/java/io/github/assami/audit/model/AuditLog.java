@@ -70,7 +70,8 @@ public class AuditLog {
     }
 
     public AuditLog softDelete(Instant deletedAt) {
-        return toBuilder().deletedAt(deletedAt).build();
+        // A deleted entry is hidden from the API, so personal data could never be erased afterwards: drop it now.
+        return toBuilder().payload(null).createdBy(null).lastModifiedBy(null).deletedAt(deletedAt).build();
     }
 
     // ── Builder ──────────────────────────────────────────────────────────────

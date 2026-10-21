@@ -18,7 +18,7 @@ import org.springframework.boot.context.properties.NestedConfigurationProperty;
  *     strategy: JWT_CLAIM
  *     header-name: X-Tenant-ID
  *     jwt-claim: tenant_id
- *     enforce-isolation: false
+ *     enforce-isolation: true
  *   api:
  *     base-path: /api/audit
  * }</pre>
@@ -79,7 +79,8 @@ public class AuditProperties {
         private TenantStrategy strategy = TenantStrategy.JWT_CLAIM;
         private String headerName = "X-Tenant-ID";
         private String jwtClaim = "tenant_id";
-        private boolean enforceIsolation = false;
+        // true: with tenancy on, a request without a tenant would otherwise see every tenant's entries.
+        private boolean enforceIsolation = true;
 
         public boolean isEnabled()                       { return enabled; }
         public void setEnabled(boolean enabled)          { this.enabled = enabled; }

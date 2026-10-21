@@ -22,7 +22,9 @@ import java.time.Instant;
     }
 )
 // Hibernate binds (id, version) for a @Version entity, so the SQL needs both parameters.
-@SQLDelete(sql = "UPDATE audit_log SET deleted_at = NOW() WHERE id = ? AND version = ?")
+// It also drops personal data: a deleted row is invisible to the API, so it could not be erased later.
+@SQLDelete(sql = "UPDATE audit_log SET deleted_at = NOW(), payload = NULL, created_by = NULL, "
+        + "last_modified_by = NULL WHERE id = ? AND version = ?")
 @SQLRestriction("deleted_at IS NULL")
 public class AuditLogEntity {
 
