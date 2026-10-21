@@ -33,8 +33,8 @@ audit:
 
   tenancy:
     enabled: false                # Enable to test multi-tenancy
-    strategy: HEADER
-    header-name: X-Tenant-ID
+    strategy: JWT_CLAIM
+    jwt-claim: tenant_id
     enforce-isolation: false
 
   api:

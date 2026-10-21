@@ -15,7 +15,7 @@ import org.springframework.boot.context.properties.NestedConfigurationProperty;
  *     jwk-set-uri: https://issuer.example.com/.well-known/jwks.json  # only if the host defines no JwtDecoder
  *   tenancy:
  *     enabled: false
- *     strategy: HEADER
+ *     strategy: JWT_CLAIM
  *     header-name: X-Tenant-ID
  *     jwt-claim: tenant_id
  *     enforce-isolation: false
@@ -70,7 +70,8 @@ public class AuditProperties {
 
     public static class TenancyProperties {
         private boolean enabled = false;
-        private TenantStrategy strategy = TenantStrategy.HEADER;
+        // JWT_CLAIM by default: with HEADER the caller picks its own tenant.
+        private TenantStrategy strategy = TenantStrategy.JWT_CLAIM;
         private String headerName = "X-Tenant-ID";
         private String jwtClaim = "tenant_id";
         private boolean enforceIsolation = false;

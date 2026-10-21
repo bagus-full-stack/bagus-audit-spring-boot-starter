@@ -133,8 +133,8 @@ Disabled by default. Enable it with `audit.tenancy.enabled=true`.
 
 | Strategy | Tenant comes from |
 |---|---|
-| `HEADER` (default) | Request header `audit.tenancy.header-name` (default `X-Tenant-ID`). The caller chooses the value: use it only behind a gateway that sets it |
-| `JWT_CLAIM` | Claim `audit.tenancy.jwt-claim` (default `tenant_id`) of the authenticated JWT |
+| `JWT_CLAIM` (default) | Claim `audit.tenancy.jwt-claim` (default `tenant_id`) of the authenticated JWT |
+| `HEADER` | Request header `audit.tenancy.header-name` (default `X-Tenant-ID`). The caller chooses the value: use it only behind a gateway that sets it |
 | `SUBDOMAIN` | First label of the host name (`acme.example.com` gives `acme`) |
 
 When a tenant is resolved, the service forces it on every operation: new entries get it, list queries are filtered by it
@@ -172,7 +172,7 @@ class MyEraser implements AuditGdprEraser {
 | `audit.api.base-path` | `/api/audit` | Base path of the REST API |
 | `audit.security.jwk-set-uri` | none | JWKS URL used when the application defines no `JwtDecoder` |
 | `audit.tenancy.enabled` | `false` | Turn multi-tenancy on |
-| `audit.tenancy.strategy` | `HEADER` | `HEADER`, `JWT_CLAIM` or `SUBDOMAIN` |
+| `audit.tenancy.strategy` | `JWT_CLAIM` | `JWT_CLAIM`, `HEADER` or `SUBDOMAIN` |
 | `audit.tenancy.header-name` | `X-Tenant-ID` | Header read by `HEADER` |
 | `audit.tenancy.jwt-claim` | `tenant_id` | Claim read by `JWT_CLAIM` |
 | `audit.tenancy.enforce-isolation` | `false` | Reject audit requests that have no tenant |
