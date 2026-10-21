@@ -51,11 +51,6 @@
       <artifactId>spring-boot-starter-data-jpa</artifactId>
       <optional>true</optional>
     </dependency>
-    <dependency>
-      <groupId>org.springframework.boot</groupId>
-      <artifactId>spring-boot-starter-data-rest</artifactId>
-      <optional>true</optional>
-    </dependency>
 
     <!-- Validation -->
     <dependency>
@@ -68,46 +63,6 @@
     <dependency>
       <groupId>org.springframework.boot</groupId>
       <artifactId>spring-boot-starter-actuator</artifactId>
-      <optional>true</optional>
-    </dependency>
-
-    <!-- Resilience4j -->
-    <dependency>
-      <groupId>io.github.resilience4j</groupId>
-      <artifactId>resilience4j-spring-boot3</artifactId>
-      <optional>true</optional>
-    </dependency>
-    <dependency>
-      <groupId>io.github.resilience4j</groupId>
-      <artifactId>resilience4j-circuitbreaker</artifactId>
-      <optional>true</optional>
-    </dependency>
-
-    <!-- Caffeine cache -->
-    <dependency>
-      <groupId>com.github.ben-manes.caffeine</groupId>
-      <artifactId>caffeine</artifactId>
-      <optional>true</optional>
-    </dependency>
-
-    <!-- Redis (optional distributed cache / rate-limit) -->
-    <dependency>
-      <groupId>org.springframework.boot</groupId>
-      <artifactId>spring-boot-starter-data-redis</artifactId>
-      <optional>true</optional>
-    </dependency>
-
-    <!-- Spring Retry -->
-    <dependency>
-      <groupId>org.springframework.retry</groupId>
-      <artifactId>spring-retry</artifactId>
-      <optional>true</optional>
-    </dependency>
-
-    <!-- AOP for retry + circuit breaker -->
-    <dependency>
-      <groupId>org.springframework.boot</groupId>
-      <artifactId>spring-boot-starter-aop</artifactId>
       <optional>true</optional>
     </dependency>
 

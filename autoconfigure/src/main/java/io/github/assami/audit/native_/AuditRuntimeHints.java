@@ -35,9 +35,6 @@ public class AuditRuntimeHints implements RuntimeHintsRegistrar {
             hints.reflection().registerType(type, MemberCategory.values());
         }
 
-        // i18n resource bundles
-        hints.resources().registerPattern("i18n/audit-messages*.properties");
-
         // Additional metadata
         hints.resources().registerPattern("META-INF/spring/org.springframework.boot.autoconfigure.AutoConfiguration.imports");
         hints.resources().registerPattern("META-INF/additional-spring-configuration-metadata.json");

@@ -8,10 +8,18 @@ Versioning follows [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Fixed
+- `audit-starter` and `audit-starter-jpa` now include the OAuth2 resource server; the security
+  configuration needs it, and only `audit-starter-full` had it
+
 ### Removed
 - Settings that no code read: `audit.rate-limit.*`, `audit.cache.*`, `audit.async.*`,
   `audit.api.cors.*`, `audit.api.bulk-atomic`, `audit.api.page-size-*`, `audit.soft-delete.*`,
   `audit.security.enabled`, `audit.security.roles.*`
+- Unused dependencies: Resilience4j, Caffeine, Redis, Spring Retry, AOP, Spring Cache and Spring Data REST
+  (Spring Data REST could export the audit table over HTTP outside the audit security chain).
+  `audit-starter-full` is now the same as `audit-starter-jpa`
+- Unused i18n bundles (`audit-messages*.properties`): no message source ever read them
 - `AuditMetrics.recordOperation` (never called) and the `audit.operations.total` /
   `audit.operation.duration` metrics; only `audit.repository.size` remains
 
@@ -31,7 +39,6 @@ Versioning follows [Semantic Versioning](https://semver.org/).
 - Micrometer metric: `audit.repository.size`
 - Actuator health indicator
 - GraalVM Native Image hints (`AuditRuntimeHints`)
-- i18n bundles: EN, FR, AR
 - RFC 9457 Problem Details error responses
 - Flyway + Liquibase DDL reference (5 indexes)
 - GitHub Actions: CI, release to Maven Central, GraalVM native smoke test
