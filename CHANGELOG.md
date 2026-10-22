@@ -8,6 +8,12 @@ Versioning follows [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Changed
+- **Breaking:** the in-memory repository now needs `audit.in-memory=true`; without it, startup fails when no `AuditRepository` exists.
+- **Breaking:** `POST /batch` accepts at most 100 entries (was 500), to bound memory per request.
+- Soft delete and GDPR erasure log the acting user at INFO level.
+- README lists every schema script; removed unused setters from `AuditLogEntity`.
+
 ## [1.0.0] — 2026-10-21
 
 First release. The sections after the feature list record what changed while the code was hardened before publishing.
@@ -21,7 +27,7 @@ First release. The sections after the feature list record what changed while the
 - Role-based security: `ROLE_AUDIT_READ`, `ROLE_AUDIT_WRITE`, `ROLE_AUDIT_ADMIN`
 - OAuth2 JWT resource server integration
 - Multi-tenancy: HEADER, JWT_CLAIM, SUBDOMAIN strategies
-- Bulk operations (`POST /batch`, max 500 entries, one transaction)
+- Bulk operations (`POST /batch`, max 100 entries, one transaction)
 - Spring Application Events: Created, Deleted, Erased
 - Micrometer counters `audit.entries.created`, `audit.entries.deleted`, `audit.entries.erased`
 - Actuator health indicator

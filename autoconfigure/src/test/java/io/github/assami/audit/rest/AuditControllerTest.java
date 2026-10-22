@@ -143,7 +143,7 @@ class AuditControllerTest {
                         .content("{\"entries\":[]}"))
                 .andExpect(status().isBadRequest());
 
-        String tooMany = "{\"entries\":[" + String.join(",", Collections.nCopies(501, "{\"action\":\"X\"}")) + "]}";
+        String tooMany = "{\"entries\":[" + String.join(",", Collections.nCopies(101, "{\"action\":\"X\"}")) + "]}";
         mvc.perform(post("/api/audit/batch")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(tooMany))

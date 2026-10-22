@@ -55,12 +55,13 @@ public class AuditAutoConfiguration {
     private static final org.slf4j.Logger log =
             org.slf4j.LoggerFactory.getLogger(AuditAutoConfiguration.class);
 
-    // ── Repository (fallback — JPA takes precedence when classpath matches) ──
+    // ── Repository (JPA takes precedence; in-memory only with audit.in-memory=true) ──
 
     @Bean
     @ConditionalOnMissingBean(AuditRepository.class)
+    @ConditionalOnProperty(name = "audit.in-memory", havingValue = "true")
     public AuditRepository inMemoryAuditRepository() {
-        log.warn("No AuditRepository bean found: using the in-memory repository. "
+        log.warn("audit.in-memory=true: using the in-memory repository. "
                 + "Audit entries are lost on restart and memory is unbounded. "
                 + "Add audit-starter-jpa (or your own AuditRepository) for production.");
         return new InMemoryAuditRepository();

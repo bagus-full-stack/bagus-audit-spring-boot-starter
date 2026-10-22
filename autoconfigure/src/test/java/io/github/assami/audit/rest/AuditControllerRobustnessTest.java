@@ -157,10 +157,10 @@ class AuditControllerRobustnessTest {
     @Test
     @WithMockUser(roles = "AUDIT_WRITE")
     void batch_boundaries() throws Exception {
-        String ok = batch(500, "{\"action\":\"X\"}");
+        String ok = batch(100, "{\"action\":\"X\"}");
         mvc.perform(post("/api/audit/batch").contentType(MediaType.APPLICATION_JSON).content(ok))
-                .andExpect(status().isCreated()).andExpect(jsonPath("$.length()").value(500));
-        for (String bad : new String[]{batch(501, "{\"action\":\"X\"}"), "{\"entries\":null}", "{}",
+                .andExpect(status().isCreated()).andExpect(jsonPath("$.length()").value(100));
+        for (String bad : new String[]{batch(101, "{\"action\":\"X\"}"), "{\"entries\":null}", "{}",
                 "{\"entries\":[null]}", "{\"entries\":[{\"action\":\"\"}]}", "{\"entries\":[{\"action\":\"A\"},{}]}"}) {
             mvc.perform(post("/api/audit/batch").contentType(MediaType.APPLICATION_JSON).content(bad))
                     .andExpect(status().isBadRequest());

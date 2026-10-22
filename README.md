@@ -42,7 +42,7 @@ Storage is pluggable (JPA, or an in-memory fallback for development).
 | Module | Purpose |
 |---|---|
 | `autoconfigure` | All the code: model, service, REST controller, security, tenancy, JPA and in-memory adapters, auto-configuration |
-| `starter` | Core starter: autoconfigure + web, security, OAuth2 resource server, actuator, validation. Uses the in-memory repository |
+| `starter` | Core starter: autoconfigure + web, security, OAuth2 resource server, actuator, validation. In-memory repository only with `audit.in-memory=true` |
 | `starter-jpa` | `starter` + Spring Data JPA. Persists entries in the `audit_log` table |
 | `sample` | Example application with H2 (default) and PostgreSQL (`prod` profile), Flyway migration included |
 
@@ -79,9 +79,17 @@ audit:
     audience: audit-api                  # recommended
 ```
 
-Create the `audit_log` table with the DDL in
-[`sample/src/main/resources/db/migration/V1__create_audit_log.sql`](sample/src/main/resources/db/migration/V1__create_audit_log.sql)
-(Flyway format; adapt it for Liquibase or another tool). The sample sets `ddl-auto: validate`.
+Create the `audit_log` table with **all** the scripts below, in order (Flyway format; adapt them for Liquibase or
+another tool). The indexes are not optional: without them, listing and purging scan the whole table.
+
+| Script (under `sample/src/main/resources/db/`) | Content |
+|---|---|
+| `migration/V1__create_audit_log.sql` | table |
+| `vendor/<h2 or postgresql>/V2__indexes.sql` | keyset and tenant indexes |
+| `vendor/postgresql/V3__timestamptz.sql` | PostgreSQL only: `TIMESTAMPTZ` columns |
+| `vendor/h2/V3__deleted_index.sql`, `vendor/postgresql/V4__deleted_index.sql` | index used by the purge job |
+
+The sample sets `ddl-auto: validate`. The purge job's SQL runs on PostgreSQL and H2 only. With several instances, set `audit.retention.deleted-days` on one of them: every instance with a value above 0 runs the purge at the same time.
 
 ## REST API
 
@@ -90,7 +98,7 @@ Base path: `/api/audit` (change it with `audit.api.base-path`).
 | Method and path | Role | Result |
 |---|---|---|
 | `POST /` | `AUDIT_WRITE` or `AUDIT_ADMIN` | `201` with the created entry |
-| `POST /batch` | `AUDIT_WRITE` or `AUDIT_ADMIN` | `201` with the list of saved entries; 1 to 500 entries in one transaction |
+| `POST /batch` | `AUDIT_WRITE` or `AUDIT_ADMIN` | `201` with the list of saved entries; 1 to 100 entries in one transaction |
 | `GET /` | `AUDIT_READ` or `AUDIT_ADMIN` | `200` page of entries |
 | `GET /{id}` | `AUDIT_READ` or `AUDIT_ADMIN` | `200` entry, or `404` |
 | `DELETE /{id}` | `AUDIT_ADMIN` | `204`, soft delete |
@@ -149,7 +157,7 @@ Disabled by default. Enable it with `audit.tenancy.enabled=true`.
 | Strategy | Tenant comes from |
 |---|---|
 | `JWT_CLAIM` (default) | Claim `audit.tenancy.jwt-claim` (default `tenant_id`) of the authenticated JWT |
-| `HEADER` | Request header `audit.tenancy.header-name` (default `X-Tenant-ID`). The caller chooses the value: use it only behind a gateway that sets it. If the token also has the tenant claim, the two must match, else `403` |
+| `HEADER` | Request header `audit.tenancy.header-name` (default `X-Tenant-ID`). The caller chooses the value: use it only behind a gateway that sets it. A token without the tenant claim lets its holder name any tenant. If the token also has the tenant claim, the two must match, else `403` |
 | `SUBDOMAIN` | First label of the host name (`acme.example.com` gives `acme`). Same claim check as `HEADER` |
 
 When a tenant is resolved, the service forces it on every operation: new entries get it, list queries are filtered by it
@@ -177,7 +185,7 @@ class MyEraser implements AuditGdprEraser {
 ## Storage
 
 - **JPA** (`starter-jpa`): table `audit_log`, soft delete with `@SQLDelete` and `@SQLRestriction`, optimistic `version` column.
-- **In-memory** (`starter` only): used when no other `AuditRepository` bean exists. All data is lost on restart and
+- **In-memory** (`starter` only): used only when `audit.in-memory=true` and no other `AuditRepository` bean exists. Without that property, the application does not start without a repository. All data is lost on restart and
   memory grows without limit. Development only.
 - To use another store, define your own `AuditRepository` bean (the port is in `io.github.assami.audit.port`).
 - **Retention**: soft-deleted rows stay forever by default. Set `audit.retention.deleted-days` to a number above 0

@@ -31,7 +31,9 @@ public interface AuditLogJpaRepository
 
     // ── Retention ─────────────────────────────────────────────────────────────
 
-    /** Native on purpose: HQL would add the soft-delete restriction and match nothing. */
+    /**
+     * Native on purpose: HQL would add the soft-delete restriction and match nothing.
+     */
     // Own transaction: in a native image JpaAuditRepository is not proxied, so nothing else opens one.
     @Transactional
     @Modifying

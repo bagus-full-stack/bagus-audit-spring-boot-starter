@@ -7,6 +7,12 @@
       "defaultValue": true
     },
     {
+      "name": "audit.in-memory",
+      "type": "java.lang.Boolean",
+      "description": "Allow the in-memory repository when no AuditRepository bean exists. Development only: data is lost on restart.",
+      "defaultValue": false
+    },
+    {
       "name": "audit.name",
       "type": "java.lang.String",
       "description": "Logical name of the service using this starter. Written as service_name on every log entry.",

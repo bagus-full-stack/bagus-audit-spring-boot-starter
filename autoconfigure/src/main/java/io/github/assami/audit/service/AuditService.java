@@ -15,6 +15,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationEvent;
 import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 
 import java.util.List;
 import java.util.Optional;
@@ -93,7 +95,7 @@ public class AuditService {
         findById(id); // tenant check
         repository.softDelete(id);
         publish(new AuditLogDeletedEvent(this, id));
-        log.debug("Audit log soft-deleted: {}", id);
+        log.info("Audit log soft-deleted: {} by {}", id, actor());
     }
 
     // ── GDPR Erasure ─────────────────────────────────────────────────────────
@@ -106,7 +108,7 @@ public class AuditService {
 
         repository.gdprErase(id);
         publish(new AuditLogErasedEvent(this, id));
-        log.info("GDPR erasure performed on audit log: {}", id);
+        log.info("GDPR erasure performed on audit log: {} by {}", id, actor());
     }
 
     // ── Retention ────────────────────────────────────────────────────────────
@@ -126,6 +128,11 @@ public class AuditService {
         } while (removed >= batch);
         if (total > 0) log.info("Purged {} soft-deleted audit entries older than {}", total, olderThan);
         return total;
+    }
+
+    private static String actor() {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        return auth != null ? auth.getName() : "unknown";
     }
 
     /**

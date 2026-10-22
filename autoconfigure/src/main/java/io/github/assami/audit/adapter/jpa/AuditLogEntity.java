@@ -123,29 +123,16 @@ public class AuditLogEntity {
     // ── Getters / setters ────────────────────────────────────────────────────
 
     public String getId()               { return id; }
-    public void setId(String id)        { this.id = id; }
     public String getTenantId()         { return tenantId; }
-    public void setTenantId(String t)   { this.tenantId = t; }
     public String getServiceName()      { return serviceName; }
-    public void setServiceName(String s){ this.serviceName = s; }
     public String getAction()           { return action; }
-    public void setAction(String a)     { this.action = a; }
     public AuditLevel getLevel()        { return level; }
-    public void setLevel(AuditLevel l)  { this.level = l; }
     public String getPayload()          { return payload; }
-    public void setPayload(String p)    { this.payload = p; }
     public Instant getCreatedAt()       { return createdAt; }
-    public void setCreatedAt(Instant t) { this.createdAt = t; }
     public Instant getUpdatedAt()       { return updatedAt; }
-    public void setUpdatedAt(Instant t) { this.updatedAt = t; }
     public String getCreatedBy()        { return createdBy; }
-    public void setCreatedBy(String c)  { this.createdBy = c; }
     public String getLastModifiedBy()   { return lastModifiedBy; }
-    public void setLastModifiedBy(String m){ this.lastModifiedBy = m; }
     public Long getVersion()            { return version; }
-    public void setVersion(Long v)      { this.version = v; }
     public Instant getDeletedAt()       { return deletedAt; }
-    public void setDeletedAt(Instant t) { this.deletedAt = t; }
     public Instant getGdprErasedAt()    { return gdprErasedAt; }
-    public void setGdprErasedAt(Instant t){ this.gdprErasedAt = t; }
 }

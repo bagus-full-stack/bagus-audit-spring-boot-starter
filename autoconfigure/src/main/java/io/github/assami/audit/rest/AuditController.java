@@ -151,7 +151,7 @@ public class AuditController {
     ) {}
 
     public record BatchAuditRequest(
-            @NotEmpty @Size(max = 500) List<@Valid @NotNull CreateAuditRequest> entries
+            @NotEmpty @Size(max = 100) List<@Valid @NotNull CreateAuditRequest> entries
     ) {}
 
     public record AuditPageResponse(
