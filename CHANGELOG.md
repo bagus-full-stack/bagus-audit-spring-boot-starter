@@ -8,12 +8,6 @@ Versioning follows [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
-### Changed
-- **Breaking:** the in-memory repository now needs `audit.in-memory=true`; without it, startup fails when no `AuditRepository` exists.
-- **Breaking:** `POST /batch` accepts at most 100 entries (was 500), to bound memory per request.
-- Soft delete and GDPR erasure log the acting user at INFO level.
-- README lists every schema script; removed unused setters from `AuditLogEntity`.
-
 ## [1.0.0] — 2026-10-21
 
 First release. The sections after the feature list record what changed while the code was hardened before publishing.
@@ -43,6 +37,10 @@ First release. The sections after the feature list record what changed while the
 - Keyset query bounds the index scan (`created_at <= cursor`): 436 ms to 0.16 ms on 2M rows.
 - Native image: tenancy and retention are switched at runtime, and the `@Modifying` queries carry their own transaction.
 - Docker: Keycloak and native overrides, k6 load script, `restart: on-failure` for the app.
+- The in-memory repository needs `audit.in-memory=true`; without it, startup fails when no `AuditRepository` exists.
+- `POST /batch` accepts at most 100 entries, to bound memory per request.
+- Soft delete and GDPR erasure log the acting user at INFO level.
+- README lists every schema script; unused setters removed from `AuditLogEntity`.
 
 ### Release
 - `release` Maven profile (sources, javadoc, GPG signing, Central Portal upload) and `RELEASING.md`.
