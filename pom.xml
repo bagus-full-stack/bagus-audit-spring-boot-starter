@@ -55,9 +55,6 @@
     <maven.compiler.source>21</maven.compiler.source>
     <maven.compiler.target>21</maven.compiler.target>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-
-    <!-- Dependency versions -->
-    <flatten-maven-plugin.version>1.6.0</flatten-maven-plugin.version>
   </properties>
 
   <dependencyManagement>
@@ -82,37 +79,7 @@
   </dependencyManagement>
 
   <build>
-    <pluginManagement>
-      <plugins>
-        <plugin>
-          <groupId>org.codehaus.mojo</groupId>
-          <artifactId>flatten-maven-plugin</artifactId>
-          <version>${flatten-maven-plugin.version}</version>
-          <configuration>
-            <updatePomFile>true</updatePomFile>
-            <flattenMode>resolveCiFriendliesOnly</flattenMode>
-          </configuration>
-          <executions>
-            <execution>
-              <id>flatten</id>
-              <phase>process-resources</phase>
-              <goals><goal>flatten</goal></goals>
-            </execution>
-            <execution>
-              <id>flatten.clean</id>
-              <phase>clean</phase>
-              <goals><goal>clean</goal></goals>
-            </execution>
-          </executions>
-        </plugin>
-      </plugins>
-    </pluginManagement>
-
     <plugins>
-      <plugin>
-        <groupId>org.codehaus.mojo</groupId>
-        <artifactId>flatten-maven-plugin</artifactId>
-      </plugin>
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-enforcer-plugin</artifactId>

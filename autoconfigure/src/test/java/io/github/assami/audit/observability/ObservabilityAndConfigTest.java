@@ -42,22 +42,10 @@ class ObservabilityAndConfigTest {
     }
 
     @Test
-    void health_doesNotCountRows() {
-        AuditRepository repo = mock(AuditRepository.class);
-        when(repo.findById("health-probe")).thenReturn(Optional.empty());
-
-        new AuditHealthIndicator(repo).health();
-
-        org.mockito.Mockito.verify(repo, org.mockito.Mockito.never()).count();
-    }
-
-    @Test
     void metrics_countersFollowTheEvents_withoutTouchingTheRepository() {
         AuditProperties props = new AuditProperties();
         props.setName("svc");
-        AuditRepository repo = new InMemoryAuditRepository() {
-            @Override public long count() { throw new AssertionError("metrics must not count rows"); }
-        };
+        AuditRepository repo = new InMemoryAuditRepository();
         SimpleMeterRegistry registry = new SimpleMeterRegistry();
         AuditMetrics metrics = new AuditMetrics(registry);
         AuditService service = new AuditService(repo, e -> {

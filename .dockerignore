@@ -4,6 +4,5 @@
 .github/
 graphify-out/
 .token-optimizer-audit-*/
-**/.flattened-pom.xml
 *.md
 !README.md

@@ -5,6 +5,7 @@ import io.github.assami.audit.model.AuditLog;
 import io.github.assami.audit.model.AuditQuery;
 import io.github.assami.audit.properties.AuditProperties;
 import io.github.assami.audit.service.AuditService;
+import io.github.assami.audit.support.PaginationAssertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -44,7 +45,7 @@ class RetentionTest {
         long removed = repo.purgeDeleted(Instant.now().minus(Duration.ofDays(30)), 1000);
 
         assertThat(removed).isEqualTo(1);
-        assertThat(repo.count()).isEqualTo(1);
+        assertThat(PaginationAssertions.countAll(repo)).isEqualTo(1);
         assertThat(repo.purgeDeleted(Instant.now().plus(Duration.ofDays(1)), 1000)).as("the recent one goes later").isEqualTo(1);
         assertThat(repo.findAll(AuditQuery.builder().build()).content()).extracting(AuditLog::getAction).containsExactly("LIVE");
     }
@@ -86,7 +87,7 @@ class RetentionTest {
 
         assertThat(svc.purgeDeleted(Duration.ofSeconds(-1))).isEqualTo(5);
         assertThat(calls[0]).as("2 + 2 + 1, the last short batch ends the loop").isEqualTo(3);
-        assertThat(counting.count()).isZero();
+        assertThat(PaginationAssertions.countAll(counting)).isZero();
     }
 
     @Test
@@ -105,6 +106,6 @@ class RetentionTest {
         service.create(AuditLog.builder().action("LIVE"));
 
         assertThat(service.purgeDeleted(Duration.ofSeconds(-1))).isZero();
-        assertThat(repo.count()).isEqualTo(1);
+        assertThat(PaginationAssertions.countAll(repo)).isEqualTo(1);
     }
 }

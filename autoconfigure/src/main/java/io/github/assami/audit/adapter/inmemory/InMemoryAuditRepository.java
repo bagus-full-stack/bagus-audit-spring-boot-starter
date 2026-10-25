@@ -108,9 +108,4 @@ public class InMemoryAuditRepository implements AuditRepository {
         ids.forEach(store::remove);
         return ids.size();
     }
-
-    @Override
-    public long count() {
-        return store.values().stream().filter(l -> !l.isDeleted()).count();
-    }
 }

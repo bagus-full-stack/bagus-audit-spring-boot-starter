@@ -1,6 +1,5 @@
 # Build output
 target/
-.flattened-pom.xml
 
 # IDE
 .idea/

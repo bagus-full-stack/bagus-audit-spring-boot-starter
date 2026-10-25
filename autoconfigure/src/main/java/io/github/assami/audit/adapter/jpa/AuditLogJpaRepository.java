@@ -40,9 +40,4 @@ public interface AuditLogJpaRepository
     @Query(value = "DELETE FROM audit_log WHERE id IN (SELECT id FROM audit_log "
             + "WHERE deleted_at IS NOT NULL AND deleted_at < :before ORDER BY deleted_at LIMIT :limit)", nativeQuery = true)
     int purgeDeletedBefore(@Param("before") Instant before, @Param("limit") int limit);
-
-    // ── Count non-deleted ─────────────────────────────────────────────────────
-
-    @Query("SELECT COUNT(a) FROM AuditLogEntity a WHERE a.deletedAt IS NULL")
-    long countActive();
 }

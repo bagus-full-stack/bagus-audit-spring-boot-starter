@@ -5,6 +5,7 @@ import io.github.assami.audit.model.AuditLevel;
 import io.github.assami.audit.model.AuditLog;
 import io.github.assami.audit.model.AuditPage;
 import io.github.assami.audit.model.AuditQuery;
+import io.github.assami.audit.support.PaginationAssertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -145,7 +146,7 @@ class InMemoryAuditRepositoryTest {
                 AuditLog.builder().serviceName("s").action("B").build()
         );
         repo.saveAll(logs);
-        assertThat(repo.count()).isEqualTo(2);
+        assertThat(PaginationAssertions.countAll(repo)).isEqualTo(2);
     }
 
     @Test
@@ -154,7 +155,7 @@ class InMemoryAuditRepositoryTest {
         repo.save(AuditLog.builder().serviceName("s").action("B").build());
         repo.softDelete(log.getId());
 
-        assertThat(repo.count()).isEqualTo(1);
+        assertThat(PaginationAssertions.countAll(repo)).isEqualTo(1);
     }
 
     @Test

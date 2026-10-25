@@ -8,6 +8,7 @@ import io.github.assami.audit.model.AuditLog;
 import io.github.assami.audit.port.AuditGdprEraser;
 import io.github.assami.audit.properties.AuditProperties;
 import io.github.assami.audit.tenancy.TenantContext;
+import io.github.assami.audit.support.PaginationAssertions;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -90,7 +91,7 @@ class AuditServiceRobustnessTest {
         svc.delete(created.getId());
 
         assertThat(batch).hasSize(2);
-        assertThat(repo.count()).isEqualTo(2);
+        assertThat(PaginationAssertions.countAll(repo)).isEqualTo(2);
     }
 
     @Test
@@ -104,7 +105,7 @@ class AuditServiceRobustnessTest {
         AuditService svc = service(Optional.empty());
 
         assertThatThrownBy(() -> svc.create(AuditLog.builder())).isInstanceOf(IllegalStateException.class);
-        assertThat(repo.count()).isZero();
+        assertThat(PaginationAssertions.countAll(repo)).isZero();
         assertThat(events).isEmpty();
     }
 

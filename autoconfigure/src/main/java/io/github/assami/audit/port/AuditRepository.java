@@ -63,12 +63,6 @@ public interface AuditRepository {
     void gdprErase(String id);
 
     /**
-     * Count the total number of non-deleted entries.
-     * A full count: do not call it on a hot path.
-     */
-    long count();
-
-    /**
      * Permanently remove at most {@code limit} entries that were soft-deleted before {@code before}.
      * The caller repeats the call until it returns less than {@code limit}, so no single statement locks a huge
      * range. Adapters that never keep soft-deleted rows can leave the default.

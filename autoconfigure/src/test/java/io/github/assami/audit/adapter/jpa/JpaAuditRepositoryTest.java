@@ -5,6 +5,7 @@ import io.github.assami.audit.model.AuditLevel;
 import io.github.assami.audit.model.AuditLog;
 import io.github.assami.audit.model.AuditPage;
 import io.github.assami.audit.model.AuditQuery;
+import io.github.assami.audit.support.PaginationAssertions;
 import jakarta.persistence.EntityManager;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -161,7 +162,7 @@ class JpaAuditRepositoryTest {
         flushAndClear();
 
         assertThat(repo.findById(a.getId())).isEmpty();
-        assertThat(repo.count()).isEqualTo(1);
+        assertThat(PaginationAssertions.countAll(repo)).isEqualTo(1);
         assertThatThrownBy(() -> repo.softDelete("unknown")).isInstanceOf(AuditNotFoundException.class);
     }
 

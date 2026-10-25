@@ -34,6 +34,11 @@ public final class PaginationAssertions {
         throw new AssertionError("cursor walk did not terminate");
     }
 
+    /** Number of live rows, counted by walking the cursor: the port has no count method. */
+    public static long countAll(AuditRepository repo) {
+        return walk(repo, 200).size();
+    }
+
     public static void assertWalkIsExact(AuditRepository repo, Set<String> expectedIds, int pageSize) {
         List<AuditLog> walked = walk(repo, pageSize);
         assertThat(walked).as("page size %d: no row lost or repeated", pageSize).hasSize(expectedIds.size());

@@ -87,7 +87,7 @@ class InMemoryRobustnessTest {
         repo.softDelete(gone.getId());
 
         assertThat(repo.findAll(AuditQuery.builder().build()).content()).extracting(AuditLog::getAction).containsExactly("KEEP");
-        assertThat(repo.count()).isEqualTo(1);
+        assertThat(PaginationAssertions.countAll(repo)).isEqualTo(1);
         assertThat(repo.findById(gone.getId())).isEmpty();
     }
 
@@ -145,7 +145,7 @@ class InMemoryRobustnessTest {
         for (Future<?> f : futures) f.get(30, TimeUnit.SECONDS);
         pool.shutdown();
 
-        assertThat(repo.count()).isEqualTo((long) threads * perThread);
+        assertThat(PaginationAssertions.countAll(repo)).isEqualTo((long) threads * perThread);
         PaginationAssertions.assertWalkIsExact(repo, new HashSet<>(ids), 200);
     }
 
@@ -161,6 +161,6 @@ class InMemoryRobustnessTest {
         for (Future<?> f : futures) f.get(60, TimeUnit.SECONDS);
         pool.shutdown();
 
-        assertThat(repo.count()).isEqualTo(200 + 4 * 300);
+        assertThat(PaginationAssertions.countAll(repo)).isEqualTo(200 + 4 * 300);
     }
 }
