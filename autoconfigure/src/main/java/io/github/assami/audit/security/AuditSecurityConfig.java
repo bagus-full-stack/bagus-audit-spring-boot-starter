@@ -23,6 +23,7 @@ import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.security.oauth2.jwt.JwtValidators;
 import org.springframework.security.oauth2.jwt.NimbusJwtDecoder;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationConverter;
+import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.web.SecurityFilterChain;
@@ -68,6 +69,8 @@ public class AuditSecurityConfig {
         http
             .securityMatcher(basePath)
             .csrf(AbstractHttpConfigurer::disable)
+            // Bearer tokens only. With CSRF off, a session cookie from the host's own login must not authenticate here.
+            .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers(HttpMethod.OPTIONS, basePath).permitAll()
                 .requestMatchers(HttpMethod.GET, basePath)

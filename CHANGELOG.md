@@ -9,6 +9,7 @@ Versioning follows [Semantic Versioning](https://semver.org/).
 ## [Unreleased]
 
 ### Fixed
+- The audit security chain disabled CSRF but still accepted a session cookie from the host's own login. It is now stateless: bearer tokens only
 - A host application's own Spring Data repositories were no longer found: the starter's `@EnableJpaRepositories` switched Boot's repository scan off. The audit package is now added to Boot's scan instead
 - The tenant id was kept in an `InheritableThreadLocal`, so a pooled thread created during one tenant's request kept that tenant for later tasks. It is now a plain `ThreadLocal`
 

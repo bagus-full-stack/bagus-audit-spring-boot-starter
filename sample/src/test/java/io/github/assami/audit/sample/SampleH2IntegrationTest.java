@@ -4,7 +4,17 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.core.context.SecurityContext;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
 import org.springframework.test.web.servlet.MockMvc;
+
+import java.util.List;
+
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 /**
  * Starts the whole sample (default profile: H2 + Flyway migration + Hibernate "validate") and drives it over HTTP.
@@ -42,5 +52,23 @@ class SampleH2IntegrationTest {
     @Test
     void securityRules() throws Exception {
         AuditApiScenarios.security(mvc);
+    }
+
+    @Test
+    void garbageCursor_is400_notAServerError() throws Exception {
+        mvc.perform(get("/api/audit").param("cursor", "abc")
+                        .with(AuditApiScenarios.user("admin", "acme", "AUDIT_ADMIN")))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void aSessionCookieDoesNotAuthenticateTheAuditApi() throws Exception {
+        SecurityContext context = SecurityContextHolder.createEmptyContext();
+        context.setAuthentication(UsernamePasswordAuthenticationToken.authenticated(
+                "admin", null, List.of(new SimpleGrantedAuthority("ROLE_AUDIT_ADMIN"))));
+        // Bearer tokens only: with CSRF off, a browser session must not be able to reach DELETE.
+        mvc.perform(get("/api/audit").sessionAttr(
+                        HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY, context))
+                .andExpect(status().isUnauthorized());
     }
 }
