@@ -13,7 +13,7 @@
   <artifactId>audit-starter-jpa</artifactId>
   <name>Audit Spring Boot Starter — JPA</name>
   <description>
-    Starter with JPA persistence adapter. Adds Spring Data JPA + Spring Data REST.
+    Starter with the JPA persistence adapter. Adds Spring Data JPA.
     Recommended for production use with a relational database.
   </description>
 
