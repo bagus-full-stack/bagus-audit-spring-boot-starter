@@ -3,7 +3,9 @@
 import http from 'k6/http';
 import { check } from 'k6';
 
-const BASE = __ENV.BASE;
+// BASE is one URL, or several separated by commas: requests then alternate between the instances.
+const BASES = __ENV.BASE.split(',');
+const base = () => BASES[(__VU + __ITER) % BASES.length];
 const json = { 'Content-Type': 'application/json' };
 
 export const options = {
@@ -19,7 +21,7 @@ export const options = {
 };
 
 export function write() {
-  const r = http.post(`${BASE}/api/audit`, JSON.stringify({ action: 'LOAD', payload: 'x'.repeat(200) }),
+  const r = http.post(`${base()}/api/audit`, JSON.stringify({ action: 'LOAD', payload: 'x'.repeat(200) }),
     { headers: { ...json, Authorization: `Bearer ${__ENV.WRITER}` } });
   check(r, { created: (x) => x.status === 201 });
 }
@@ -27,7 +29,7 @@ export function write() {
 export function read() {
   let cursor = '';
   for (let i = 0; i < 5; i++) {
-    const r = http.get(`${BASE}/api/audit?size=50${cursor ? `&cursor=${cursor}` : ''}`,
+    const r = http.get(`${base()}/api/audit?size=50${cursor ? `&cursor=${cursor}` : ''}`,
       { headers: { Authorization: `Bearer ${__ENV.READER}` } });
     check(r, { ok: (x) => x.status === 200 });
     cursor = r.json('nextCursor');
