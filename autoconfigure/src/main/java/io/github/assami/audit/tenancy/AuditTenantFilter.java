@@ -85,7 +85,8 @@ public class AuditTenantFilter extends OncePerRequestFilter {
     }
 
     private String resolveFromSubdomain(String serverName) {
-        if (serverName == null) return null;
+        // An IP address has no subdomain: "10.1.2.3" must not become tenant "10".
+        if (serverName == null || serverName.indexOf(':') >= 0 || serverName.matches("[0-9.]+")) return null;
         int dot = serverName.indexOf('.');
         return dot > 0 ? serverName.substring(0, dot) : null;
     }

@@ -4,7 +4,7 @@ A Spring Boot 3 starter that adds an audit-log REST API to any service: write au
 query them with cursor pagination, soft-delete them and erase personal data on request (GDPR).
 Storage is pluggable (JPA, or an in-memory fallback for development).
 
-- Java 21, Spring Boot 3.3.4
+- Java 17 or newer, Spring Boot 3.3.4
 - Apache License 2.0
 - Status: `1.0.0-SNAPSHOT`, not yet published to Maven Central (see [Status](#status-and-known-limits))
 
@@ -211,6 +211,9 @@ and the model answers from those entries only. `sources` lists the entries the a
 - **Busy:** at most 3 questions run at once per instance; the next one gets `429` until a slot frees up, so one caller
   cannot starve the indexer that shares the model server.
 - **Failures** are a `503` problem response; the audit write itself never depends on the model.
+- **Model:** `audit-starter-ai` brings the Ollama starter. To use another provider, add its Spring AI starter and set
+  `spring.ai.model.chat` and `spring.ai.model.embedding` to that provider's name; otherwise two `ChatModel` beans clash
+  and the application does not start.
 - **Index:** you must define a `VectorStore` bean (pgvector, ...) for real use. For a trial, `audit.ai.in-memory-index=true`
   gives an in-memory index: it grows with every audit write, is lost on restart (the latest `audit.ai.backfill` entries,
   default 1000, are indexed again at startup), and each instance only sees its own writes. Without one of the two the
@@ -272,7 +275,7 @@ Try it: `docker compose -f docker-compose.yml -f docker-compose.ai.yml up -d --b
 
 ## Error format
 
-Errors use RFC 9457 `application/problem+json` with extra `errorCode` and `timestamp` fields.
+Errors use RFC 9457 `application/problem+json` with extra `errorCode` and `timestamp` fields. Deleting and erasing the same entry at the same moment answers `409` for the second one.
 Examples: `404` unknown entry, `400` invalid cursor or missing tenant, `401` no valid token, `403` missing role.
 
 ## Build and test
@@ -281,7 +284,7 @@ Examples: `404` unknown entry, `400` invalid cursor or missing tenant, `401` no 
 ./mvnw verify
 ```
 
-Requires JDK 21 or newer. The suite covers service logic, model invariants, the in-memory repository
+Requires JDK 17 or newer (CI runs 17 and 21). The suite covers service logic, model invariants, the in-memory repository
 (random colliding timestamps, concurrent writers), the tenant filter, the REST layer (validation, role matrix,
 hostile input), and the sample app end to end on H2. Seven more tests run the same scenarios on a real
 PostgreSQL 16 through Testcontainers; they are skipped when Docker is not running.

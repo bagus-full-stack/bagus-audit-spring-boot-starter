@@ -4,6 +4,7 @@ import io.github.assami.audit.adapter.jpa.AuditLogEntity;
 import io.github.assami.audit.adapter.jpa.AuditLogJpaRepository;
 import io.github.assami.audit.adapter.jpa.JpaAuditRepository;
 import io.github.assami.audit.port.AuditRepository;
+import io.github.assami.audit.rest.AuditConcurrencyExceptionHandler;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.AutoConfigurationPackage;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
@@ -27,5 +28,11 @@ public class AuditJpaAutoConfiguration {
     @ConditionalOnMissingBean(AuditRepository.class)
     public AuditRepository jpaAuditRepository(AuditLogJpaRepository jpaRepository) {
         return new JpaAuditRepository(jpaRepository);
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
+    public AuditConcurrencyExceptionHandler auditConcurrencyExceptionHandler() {
+        return new AuditConcurrencyExceptionHandler();
     }
 }

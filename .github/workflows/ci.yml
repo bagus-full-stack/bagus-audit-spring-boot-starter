@@ -16,7 +16,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        java: [ '21' ]
+        java: [ '17', '21' ]
 
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
@@ -37,3 +37,30 @@ jobs:
         with:
           name: surefire-reports-java${{ matrix.java }}
           path: '**/target/surefire-reports/'
+
+  # The real stack: PostgreSQL, a mock identity provider and two app instances on one database.
+  # `mvn verify` cannot see a broken production profile (issuer, audience, pool) or a multi-instance problem.
+  docker-stack:
+    name: Docker stack checks
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+
+      - name: Start the stack
+        run: docker compose -f docker-compose.yml -f docker-compose.multi.yml up -d --build
+
+      - name: Smoke test
+        run: ./docker/smoke-test.sh
+
+      - name: Two instances on one database
+        run: ./docker/multi-instance-test.sh
+
+      - name: Show the logs when a check failed
+        if: failure()
+        run: docker compose -f docker-compose.yml -f docker-compose.multi.yml logs --no-color
+
+      - name: Stop the stack
+        if: always()
+        run: docker compose -f docker-compose.yml -f docker-compose.multi.yml down -v

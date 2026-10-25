@@ -3,6 +3,7 @@ package io.github.assami.audit.adapter.jpa;
 import io.github.assami.audit.model.AuditLevel;
 import io.github.assami.audit.model.AuditLog;
 import jakarta.persistence.*;
+import org.hibernate.annotations.ResultCheckStyle;
 import org.hibernate.annotations.SQLDelete;
 import org.hibernate.annotations.SQLRestriction;
 
@@ -23,8 +24,10 @@ import java.time.Instant;
 )
 // Hibernate binds (id, version) for a @Version entity, so the SQL needs both parameters.
 // It also drops personal data: a deleted row is invisible to the API, so it could not be erased later.
+// check = COUNT: by default Hibernate does not look at how many rows a custom statement changed, so a delete that
+// raced an erase (which bumps the version) matched nothing and still answered 204 with the entry left in place.
 @SQLDelete(sql = "UPDATE audit_log SET deleted_at = NOW(), payload = NULL, created_by = NULL, "
-        + "last_modified_by = NULL WHERE id = ? AND version = ?")
+        + "last_modified_by = NULL WHERE id = ? AND version = ?", check = ResultCheckStyle.COUNT)
 @SQLRestriction("deleted_at IS NULL")
 public class AuditLogEntity {
 

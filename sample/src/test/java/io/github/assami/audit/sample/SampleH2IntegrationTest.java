@@ -14,6 +14,8 @@ import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
 import org.springframework.http.MediaType;
+import org.springframework.dao.OptimisticLockingFailureException;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.support.TransactionTemplate;
@@ -41,6 +43,7 @@ class SampleH2IntegrationTest {
     @Autowired AuditService auditService;
     @Autowired MeterRegistry registry;
     @Autowired PlatformTransactionManager transactions;
+    @Autowired JdbcTemplate jdbc;
 
     @Test
     void contextStarts_andTheSchemaMatchesTheEntity() {
@@ -103,6 +106,19 @@ class SampleH2IntegrationTest {
 
         auditService.create(entry());   // no transaction: counted at once
         assertThat(created()).isEqualTo(before + 2);
+    }
+
+    /** A delete that races a version change (an erase) must fail, not be dropped; the 409 mapping relies on it. */
+    @Test
+    void deleteRacingAVersionChange_failsWithAnOptimisticLockError() {
+        String id = auditService.create(entry()).getId();
+
+        // Without the row-count check on @SQLDelete this passed silently and the entry stayed in place.
+        assertThatThrownBy(() -> new TransactionTemplate(transactions).executeWithoutResult(s -> {
+            auditService.delete(id);
+            jdbc.update("UPDATE audit_log SET version = version + 1 WHERE id = ?", id);   // a concurrent erase
+        })).isInstanceOf(OptimisticLockingFailureException.class);
+        assertThat(jdbc.queryForObject("SELECT deleted_at FROM audit_log WHERE id = ?", Object.class, id)).isNull();
     }
 
     private double created() {

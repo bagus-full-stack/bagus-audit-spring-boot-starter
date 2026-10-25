@@ -8,6 +8,7 @@ target/
 
 # Tooling output
 graphify-out/
+.serena/
 .token-optimizer-audit-*/
 
 # Logs / OS

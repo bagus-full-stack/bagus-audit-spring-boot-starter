@@ -134,6 +134,19 @@ class TenantFilterRobustnessTest {
     }
 
     @Test
+    void subdomainStrategy_anIpAddressHasNoTenant() throws Exception {
+        props.getTenancy().setStrategy(TenantStrategy.SUBDOMAIN);
+        props.getTenancy().setEnforceIsolation(true);
+        for (String host : new String[] {"10.1.2.3", "[::1]"}) {
+            MockHttpServletRequest req = new MockHttpServletRequest("GET", "/api/audit");
+            req.setServerName(host);
+
+            assertThat(tenantSeenFor(req)).as(host).isNull();
+        }
+        verify(resolver, org.mockito.Mockito.times(2)).resolveException(any(), any(), any(), any());
+    }
+
+    @Test
     void subdomainNamingAnotherTenantThanTheToken_isRejected() throws Exception {
         props.getTenancy().setStrategy(TenantStrategy.SUBDOMAIN);
         SecurityContextHolder.getContext().setAuthentication(new JwtAuthenticationToken(
