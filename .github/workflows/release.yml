@@ -54,3 +54,4 @@ jobs:
             autoconfigure/target/*.jar
             starter/target/*.jar
             starter-jpa/target/*.jar
+            starter-ai/target/*.jar
