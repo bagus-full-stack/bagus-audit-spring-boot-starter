@@ -163,7 +163,7 @@ Disabled by default. Enable it with `audit.tenancy.enabled=true`.
 |---|---|
 | `JWT_CLAIM` (default) | Claim `audit.tenancy.jwt-claim` (default `tenant_id`) of the authenticated JWT |
 | `HEADER` | Request header `audit.tenancy.header-name` (default `X-Tenant-ID`). The caller chooses the value: use it only behind a gateway that sets it. A token without the tenant claim lets its holder name any tenant. If the token also has the tenant claim, the two must match, else `403` |
-| `SUBDOMAIN` | First label of the host name (`acme.example.com` gives `acme`). Same claim check as `HEADER` |
+| `SUBDOMAIN` | First label of the host name (`acme.example.com` gives `acme`). An IP address has no tenant. Same claim check as `HEADER` |
 
 When a tenant is resolved, the service forces it on every operation: new entries get it, list queries are filtered by it
 (a `tenantId` request parameter is ignored), and reading, deleting or erasing another tenant's entry returns `404`.
@@ -286,7 +286,7 @@ Examples: `404` unknown entry, `400` invalid cursor or missing tenant, `401` no 
 
 Requires JDK 17 or newer (CI runs 17 and 21). The suite covers service logic, model invariants, the in-memory repository
 (random colliding timestamps, concurrent writers), the tenant filter, the REST layer (validation, role matrix,
-hostile input), and the sample app end to end on H2. Seven more tests run the same scenarios on a real
+hostile input), and the sample app end to end on H2. Ten more tests run the same scenarios on a real
 PostgreSQL 16 through Testcontainers; they are skipped when Docker is not running.
 
 Publishing to Maven Central is described in [Releasing](#releasing-to-maven-central).
@@ -321,6 +321,15 @@ docker compose -f docker-compose.yml -f docker-compose.multi.yml up -d --build
 ./docker/multi-instance-test.sh     # 13 checks
 ```
 
+The audit assistant with a local Ollama (it pulls two models on the first start):
+
+```bash
+docker compose -f docker-compose.yml -f docker-compose.ai.yml up -d --build
+./docker/ai-test.sh                 # 8 checks
+```
+
+CI runs the smoke test and the two-instance test on every push (job `docker-stack`).
+
 The sample's connection pool is 30 (`DATABASE_POOL_SIZE` changes it). The starter sets no pool size: in your own application
 it is `spring.datasource.hikari.maximum-pool-size`. Size it to your concurrent requests: with 50 clients, a pool of 10 gave a
 p95 of 1.1 s and a pool of 30 gave 0.14 to 0.27 s.
@@ -339,7 +348,7 @@ curl -s -X POST localhost:8081/default/token -d 'grant_type=client_credentials&c
 - Version is `1.0.0-SNAPSHOT`; the API may still change.
 - Tested: H2 and PostgreSQL 16 (Testcontainers), a mock OAuth2 server and Keycloak 26, Auth0-style claims, two instances on one database, the JVM image and the GraalVM
   native image (`docker build --target runtime-native .`, 28/28 smoke checks), and a k6 load run (200 req/s, p95 about
-  400 ms, one container, 2M rows). Not tested: more than two instances, a provider other than Keycloak and Auth0-style claims.
+  400 ms, one container, 2M rows). Not tested: more than two instances, a provider other than Keycloak and Auth0-style claims, the audit assistant in a native image, a model provider other than Ollama.
 - In a native image `@ConditionalOn*` is decided at build time. Tenancy and retention are therefore switched at runtime
   by their properties, but `audit.enabled` and `audit.api.base-path` must be set when the image is built.
 - Not implemented yet: rate limiting, caching, a MongoDB adapter (planned for 1.1, see the [Changelog](#changelog)).
@@ -376,7 +385,7 @@ The repository itself stays on `X.Y.Z-SNAPSHOT`; only the CI build sees the rele
 
 ### Each release
 
-1. Make sure `main` is green (CI and native build).
+1. Make sure `main` is green (CI with its Docker stack job, and the native build).
 2. In the [Changelog](#changelog), move the entries under a new `## [X.Y.Z] — date` heading.
 3. Tag and push:
    ```bash
@@ -384,7 +393,7 @@ The repository itself stays on `X.Y.Z-SNAPSHOT`; only the CI build sees the rele
    git push origin vX.Y.Z
    ```
 4. When the workflow is green, open <https://central.sonatype.com/publishing/deployments>, check the deployment
-   (four components: `audit-spring-boot-starter-parent`, `audit-autoconfigure`, `audit-starter`, `audit-starter-jpa`)
+   (five components: `audit-spring-boot-starter-parent`, `audit-autoconfigure`, `audit-starter`, `audit-starter-jpa`, `audit-starter-ai`)
    and press *Publish*.
 5. The artifacts appear on Maven Central after the portal validates them (usually within minutes to an hour).
 6. Update the version in the README install snippet.
@@ -396,6 +405,8 @@ portal before publishing and tag again with a new version.
 
 Checked locally: the `release` profile builds sources and javadoc jars for the three libraries, excludes the sample,
 produces a bundle of the four expected components, and signs every file (tested with a throwaway key on Linux).
+That check was done before `audit-starter-ai` existed. The module is set up the same way, but its part of the bundle
+was not checked.
 
 Not checked: the upload itself, the namespace verification and the real key server, because they need your accounts.
 The first tag is the real test.
@@ -406,17 +417,9 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), version
 
 ### [Unreleased]
 
-#### Added
-- `audit-starter-ai`: an optional audit assistant, `POST /api/audit/ask`, answering questions about the log with a local Ollama model (RAG through Spring AI)
+### [1.0.0] — 2026-10-26
 
-#### Fixed
-- The audit security chain disabled CSRF but still accepted a session cookie from the host's own login. It is now stateless: bearer tokens only
-- A host application's own Spring Data repositories were no longer found: the starter's `@EnableJpaRepositories` switched Boot's repository scan off. The audit package is now added to Boot's scan instead
-- The tenant id was kept in an `InheritableThreadLocal`, so a pooled thread created during one tenant's request kept that tenant for later tasks. It is now a plain `ThreadLocal`
-
-### [1.0.0] — 2026-10-21
-
-First release. The sections after the feature list record what changed while the code was hardened before publishing.
+First release. The tag `v1.0.0` was moved to the latest `main` before anything was published, so this version includes everything below. The sections after the feature list record what changed while the code was hardened before publishing.
 
 #### Features
 - Multi-module Maven project: `autoconfigure`, `starter`, `starter-jpa`
@@ -502,6 +505,27 @@ First release. The sections after the feature list record what changed while the
 - Unused i18n bundles (`audit-messages*.properties`): no message source ever read them
 - `AuditMetrics.recordOperation` (never called) and the `audit.operations.total` /
   `audit.operation.duration` metrics; only `audit.repository.size` remains
+
+#### Added (assistant, checks, Docker)
+- `audit-starter-ai`: an optional audit assistant, `POST /api/audit/ask`, answering questions about the log with a local Ollama model (RAG through Spring AI). Entries come from the repository, never from the index alone, so deleted, erased or foreign-tenant entries do not reach the model. Entry text is escaped, long payloads are cut, and at most 3 questions run at once per instance (`429` for the next)
+- `audit.ai.in-memory-index`: the default in-memory index is a trial opt-in; without it a `VectorStore` bean is required
+- Docker checks: two instances on one database, Auth0-style claims, the assistant with Ollama; a k6 load script; `DATABASE_POOL_SIZE` for the sample
+- CI job `docker-stack` runs the smoke test and the two-instance test
+
+#### Changed (before the first publication)
+- Java 17 is the minimum (it was 21); CI runs 17 and 21
+- The built-in metrics and the assistant index wait for the commit when a write happens inside the host's transaction
+- The audit error handler applies to the audit controllers only; the tenant errors have their own handler
+- The sample's connection pool is 30 (was 10)
+- Unused `idx_audit_log_gdpr` index dropped from the sample migrations
+
+#### Fixed (before the first publication)
+- A delete that raced an erase matched no row, answered `204` and left the entry in place. It now fails, and the lost race answers `409`
+- The audit error handler also answered for the host application's own controllers, turning their `IllegalArgumentException` into a `400`
+- `SUBDOMAIN` tenancy took a tenant from an IP address (`10.1.2.3` gave `10`)
+- The audit security chain disabled CSRF but still accepted a session cookie from the host's own login. It is now stateless: bearer tokens only
+- A host application's own Spring Data repositories were no longer found: the starter's `@EnableJpaRepositories` switched Boot's repository scan off. The audit package is now added to Boot's scan instead
+- The tenant id was kept in an `InheritableThreadLocal`, so a pooled thread created during one tenant's request kept that tenant for later tasks. It is now a plain `ThreadLocal`
 
 #### Planned
 - MongoDB adapter
