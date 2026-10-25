@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <parent>
+    <groupId>io.github.bagus-full-stack</groupId>
+    <artifactId>audit-spring-boot-starter-parent</artifactId>
+    <version>1.0.0-SNAPSHOT</version>
+  </parent>
+
+  <artifactId>audit-starter-ai</artifactId>
+  <name>Audit Spring Boot Starter — AI</name>
+  <description>
+    Optional audit assistant: ask questions about the audit log in plain language (retrieval-augmented
+    generation with a local Ollama model through Spring AI). Add it next to a starter.
+  </description>
+
+  <dependencies>
+    <dependency>
+      <groupId>io.github.bagus-full-stack</groupId>
+      <artifactId>audit-starter</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>io.github.bagus-full-stack</groupId>
+      <artifactId>audit-autoconfigure</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.springframework.ai</groupId>
+      <artifactId>spring-ai-starter-model-ollama</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.springframework.ai</groupId>
+      <artifactId>spring-ai-vector-store</artifactId>
+    </dependency>
+  </dependencies>
+
+  <!-- These modules only declare dependencies. Central still requires sources and javadoc jars, so attach small ones. -->
+  <profiles>
+    <profile>
+      <id>release</id>
+      <build>
+        <plugins>
+          <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-jar-plugin</artifactId>
+            <executions>
+              <execution>
+                <id>sources-jar</id>
+                <phase>package</phase>
+                <goals><goal>jar</goal></goals>
+                <configuration>
+                  <classifier>sources</classifier>
+                  <classesDirectory>${project.basedir}</classesDirectory>
+                  <includes><include>pom.xml</include></includes>
+                  <forceCreation>true</forceCreation>
+                </configuration>
+              </execution>
+              <execution>
+                <id>javadoc-jar</id>
+                <phase>package</phase>
+                <goals><goal>jar</goal></goals>
+                <configuration>
+                  <classifier>javadoc</classifier>
+                  <classesDirectory>${project.basedir}</classesDirectory>
+                  <includes><include>pom.xml</include></includes>
+                  <forceCreation>true</forceCreation>
+                </configuration>
+              </execution>
+            </executions>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
+  </profiles>
+</project>

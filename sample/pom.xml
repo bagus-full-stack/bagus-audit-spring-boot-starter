@@ -75,6 +75,19 @@
     </dependency>
   </dependencies>
 
+  <!-- ./mvnw -P ai: the sample with the optional audit assistant (see docker-compose.ai.yml) -->
+  <profiles>
+    <profile>
+      <id>ai</id>
+      <dependencies>
+        <dependency>
+          <groupId>io.github.bagus-full-stack</groupId>
+          <artifactId>audit-starter-ai</artifactId>
+        </dependency>
+      </dependencies>
+    </profile>
+  </profiles>
+
   <build>
     <plugins>
       <plugin>

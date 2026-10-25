@@ -1,0 +1,30 @@
+# Same stack plus the audit assistant: a local Ollama model answers questions about the audit log.
+#   docker compose -f docker-compose.yml -f docker-compose.ai.yml up -d --build   (first start downloads about 1.5 GB of models)
+#   ./docker/ai-test.sh
+services:
+  ollama:
+    image: ollama/ollama:0.12.6
+    entrypoint: ["/bin/sh", "-c"]
+    command: ["ollama serve & sleep 3 && ollama pull llama3.2:1b && ollama pull nomic-embed-text && wait"]
+    volumes:
+      - ollama-models:/root/.ollama
+    healthcheck:
+      test: ["CMD-SHELL", "ollama list | grep -q nomic-embed-text && ollama list | grep -q llama3.2"]
+      interval: 5s
+      timeout: 5s
+      retries: 120
+
+  audit:
+    build:
+      args:
+        MAVEN_ARGS: -Pai
+    depends_on:
+      ollama:
+        condition: service_healthy
+    environment:
+      SPRING_AI_OLLAMA_BASE_URL: http://ollama:11434
+      SPRING_AI_OLLAMA_CHAT_OPTIONS_MODEL: llama3.2:1b
+      SPRING_AI_OLLAMA_EMBEDDING_OPTIONS_MODEL: nomic-embed-text
+
+volumes:
+  ollama-models:

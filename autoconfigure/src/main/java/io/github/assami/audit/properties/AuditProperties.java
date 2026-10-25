@@ -44,6 +44,9 @@ public class AuditProperties {
     @NestedConfigurationProperty
     private RetentionProperties retention = new RetentionProperties();
 
+    @NestedConfigurationProperty
+    private AiProperties ai = new AiProperties();
+
     // ── Getters / setters ────────────────────────────────────────────────────
 
     public RetentionProperties getRetention()                   { return retention; }
@@ -60,6 +63,9 @@ public class AuditProperties {
 
     public TenancyProperties getTenancy()                { return tenancy; }
     public void setTenancy(TenancyProperties tenancy)    { this.tenancy = tenancy; }
+
+    public AiProperties getAi()                          { return ai; }
+    public void setAi(AiProperties ai)                   { this.ai = ai; }
 
     public ApiProperties getApi()              { return api; }
     public void setApi(ApiProperties api)      { this.api = api; }
@@ -131,6 +137,25 @@ public class AuditProperties {
         public void setBatchSize(int batchSize)      { this.batchSize = batchSize; }
         public String getCron()                      { return cron; }
         public void setCron(String cron)             { this.cron = cron; }
+    }
+
+    /** Settings of the optional audit assistant (audit-starter-ai). */
+    public static class AiProperties {
+        /** Turns the assistant off even when audit-starter-ai is on the classpath. */
+        private boolean enabled = true;
+
+        /** Audit entries handed to the model as context for one question. */
+        private int topK = 8;
+
+        /** Most recent entries indexed at startup, because the default index lives in memory. 0 indexes none. */
+        private int backfill = 1000;
+
+        public boolean isEnabled()                 { return enabled; }
+        public void setEnabled(boolean enabled)    { this.enabled = enabled; }
+        public int getTopK()                       { return topK; }
+        public void setTopK(int topK)              { this.topK = topK; }
+        public int getBackfill()                   { return backfill; }
+        public void setBackfill(int backfill)      { this.backfill = backfill; }
     }
 
     public static class ApiProperties {

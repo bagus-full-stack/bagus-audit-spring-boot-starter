@@ -11,7 +11,9 @@ RUN --mount=type=cache,target=/root/.m2 mvn -B -ntp verify
 
 # Build the sample application jar
 FROM base AS build
-RUN --mount=type=cache,target=/root/.m2 mvn -B -ntp -pl sample -am package -DskipTests
+# MAVEN_ARGS=-Pai adds the audit assistant (audit-starter-ai) to the sample
+ARG MAVEN_ARGS=
+RUN --mount=type=cache,target=/root/.m2 mvn -B -ntp -pl sample -am package -DskipTests $MAVEN_ARGS
 
 # Runtime image (default target)
 FROM eclipse-temurin:21-jre AS runtime

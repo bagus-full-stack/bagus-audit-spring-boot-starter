@@ -17,6 +17,7 @@ Storage is pluggable (JPA, or an in-memory fallback for development).
 - [Security](#security)
 - [Multi-tenancy](#multi-tenancy)
 - [GDPR erasure](#gdpr-erasure)
+- [Audit assistant (optional)](#audit-assistant-optional)
 - [Storage](#storage)
 - [Configuration](#configuration)
 - [Events, metrics and health](#events-metrics-and-health)
@@ -46,9 +47,10 @@ Storage is pluggable (JPA, or an in-memory fallback for development).
 | `autoconfigure` | All the code: model, service, REST controller, security, tenancy, JPA and in-memory adapters, auto-configuration |
 | `starter` | Core starter: autoconfigure + web, security, OAuth2 resource server, actuator, validation. In-memory repository only with `audit.in-memory=true` |
 | `starter-jpa` | `starter` + Spring Data JPA. Persists entries in the `audit_log` table |
+| `starter-ai` | Optional: [audit assistant](#audit-assistant-optional), questions in plain language answered by a local Ollama model (Spring AI) |
 | `sample` | Example application with H2 (default) and PostgreSQL (`prod` profile), Flyway migration included |
 
-Maven coordinates (group `io.github.bagus-full-stack`): `audit-starter`, `audit-starter-jpa`.
+Maven coordinates (group `io.github.bagus-full-stack`): `audit-starter`, `audit-starter-jpa`, `audit-starter-ai`.
 
 ## Quick start
 
@@ -184,6 +186,43 @@ class MyEraser implements AuditGdprEraser {
     @Override public void beforeErase(String auditLogId) { /* ... */ }
 }
 ```
+
+## Audit assistant (optional)
+
+Add `audit-starter-ai` next to a starter and the log can answer questions in plain language:
+
+```bash
+curl -s -X POST localhost:8080/api/audit/ask -H "Authorization: Bearer $READER" -H 'Content-Type: application/json'   -d '{"question":"Which refund was approved for order 42?"}'
+# {"answer":"...","sources":["<entry id>"]}
+```
+
+It is retrieval-augmented generation (RAG): the question is embedded, the closest entries are found in a vector index,
+and the model answers from those entries only. `sources` lists the entries the answer was based on.
+
+- **Needs** an Ollama server (`spring.ai.ollama.base-url`) with a chat model and an embedding model
+  (`spring.ai.ollama.chat.options.model`, `spring.ai.ollama.embedding.options.model`), through Spring AI 1.0.3.
+  Any other Spring AI chat and embedding model works if you put its starter on the classpath instead.
+- **Read-only.** It never writes to the log. The endpoint needs `AUDIT_READ` or `AUDIT_ADMIN`.
+- **Same rules as the rest of the API.** The search is limited to the caller's tenant, and every hit is read again
+  from the repository, so a deleted or erased entry, or another tenant's, never reaches the model, even if the index
+  is behind. Deleting or erasing an entry also removes it from the index.
+- **The model runs where you put it.** With a local Ollama the audit data stays on your network. Pointing Spring AI at
+  a hosted model sends the question and the matching entries (payloads included) to that provider.
+- **Failures** are a `503` problem response; the audit write itself never depends on the model.
+- **Index:** in memory by default, fed in the background from the audit events, with the latest `audit.ai.backfill`
+  entries (default 1000) indexed at startup. Define your own `VectorStore` bean (pgvector, ...) to keep it across restarts.
+  With several instances each one has its own index.
+- **Prompt injection:** payloads are text written by users. The system prompt tells the model to treat entries as
+  data, which lowers the risk but does not remove it: a model can still be misled by a crafted payload.
+
+| Property | Default | Meaning |
+|---|---|---|
+| `audit.ai.enabled` | `true` | Turn the assistant off even when `audit-starter-ai` is present |
+| `audit.ai.top-k` | `8` | Entries handed to the model for one question |
+| `audit.ai.backfill` | `1000` | Latest entries indexed at startup; `0` indexes none |
+
+Try it: `docker compose -f docker-compose.yml -f docker-compose.ai.yml up -d --build` then `./docker/ai-test.sh`
+(the first start downloads about 1.5 GB of models). The sample only includes the assistant with `-Pai`.
 
 ## Storage
 
@@ -357,6 +396,9 @@ The first tag is the real test.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), versioning follows [Semantic Versioning](https://semver.org/).
 
 ### [Unreleased]
+
+#### Added
+- `audit-starter-ai`: an optional audit assistant, `POST /api/audit/ask`, answering questions about the log with a local Ollama model (RAG through Spring AI)
 
 #### Fixed
 - The audit security chain disabled CSRF but still accepted a session cookie from the host's own login. It is now stateless: bearer tokens only

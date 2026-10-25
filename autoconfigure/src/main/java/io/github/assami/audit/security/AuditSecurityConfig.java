@@ -65,6 +65,7 @@ public class AuditSecurityConfig {
                                                         ObjectProvider<JwtDecoder> decoders,
                                                         ObjectProvider<JwtAuthenticationConverter> converters) throws Exception {
         String basePath = properties.getApi().getBasePath() + "/**";
+        String askPath = properties.getApi().getBasePath() + "/ask";   // a POST that only reads
 
         http
             .securityMatcher(basePath)
@@ -74,6 +75,8 @@ public class AuditSecurityConfig {
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers(HttpMethod.OPTIONS, basePath).permitAll()
                 .requestMatchers(HttpMethod.GET, basePath)
+                    .hasAnyRole("AUDIT_READ", "AUDIT_ADMIN")
+                .requestMatchers(HttpMethod.POST, askPath)
                     .hasAnyRole("AUDIT_READ", "AUDIT_ADMIN")
                 .requestMatchers(HttpMethod.POST, basePath)
                     .hasAnyRole("AUDIT_WRITE", "AUDIT_ADMIN")

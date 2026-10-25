@@ -1,2 +1,3 @@
 io.github.assami.audit.autoconfigure.AuditJpaAutoConfiguration
 io.github.assami.audit.autoconfigure.AuditAutoConfiguration
+io.github.assami.audit.autoconfigure.AuditAiAutoConfiguration

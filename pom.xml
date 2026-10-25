@@ -45,6 +45,7 @@
     <module>autoconfigure</module>
     <module>starter</module>
     <module>starter-jpa</module>
+    <module>starter-ai</module>
     <module>sample</module>
   </modules>
 
@@ -52,6 +53,8 @@
     <java.version>21</java.version>
     <!-- Boot 3.3.4 manages 1.19.x, which cannot talk to Docker Engine 29 (min API 1.44) -->
     <testcontainers.version>1.21.4</testcontainers.version>
+    <!-- Spring AI 1.0.x starts on Boot 3.3 (checked), although its own docs target 3.4 -->
+    <spring-ai.version>1.0.3</spring-ai.version>
     <maven.compiler.source>21</maven.compiler.source>
     <maven.compiler.target>21</maven.compiler.target>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
@@ -59,6 +62,13 @@
 
   <dependencyManagement>
     <dependencies>
+      <dependency>
+        <groupId>org.springframework.ai</groupId>
+        <artifactId>spring-ai-bom</artifactId>
+        <version>${spring-ai.version}</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
       <!-- Internal modules -->
       <dependency>
         <groupId>io.github.bagus-full-stack</groupId>
@@ -73,6 +83,11 @@
       <dependency>
         <groupId>io.github.bagus-full-stack</groupId>
         <artifactId>audit-starter-jpa</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>io.github.bagus-full-stack</groupId>
+        <artifactId>audit-starter-ai</artifactId>
         <version>${project.version}</version>
       </dependency>
     </dependencies>

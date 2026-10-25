@@ -66,6 +66,18 @@
       <optional>true</optional>
     </dependency>
 
+    <!-- Spring AI: only the audit assistant uses it (audit-starter-ai brings the model) -->
+    <dependency>
+      <groupId>org.springframework.ai</groupId>
+      <artifactId>spring-ai-client-chat</artifactId>
+      <optional>true</optional>
+    </dependency>
+    <dependency>
+      <groupId>org.springframework.ai</groupId>
+      <artifactId>spring-ai-vector-store</artifactId>
+      <optional>true</optional>
+    </dependency>
+
     <!-- Test -->
     <dependency>
       <groupId>org.springframework.boot</groupId>
