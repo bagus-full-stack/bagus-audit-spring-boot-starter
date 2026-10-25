@@ -9,11 +9,13 @@ import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
+import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.util.List;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 /**
@@ -52,6 +54,21 @@ class SampleH2IntegrationTest {
     @Test
     void securityRules() throws Exception {
         AuditApiScenarios.security(mvc);
+    }
+
+    /**
+     * POST /ask only reads, so it must need AUDIT_READ, not the write role of other POSTs. The sample has no assistant,
+     * so a reader passes security and hits "/{id}", which only allows GET (405), while a writer is refused (403): both flip if the rule goes.
+     */
+    @Test
+    void askRule_needsTheReadRole_notTheWriteRole() throws Exception {
+        String body = "{\"question\":\"what happened\"}";
+        mvc.perform(post("/api/audit/ask").with(AuditApiScenarios.user("r", "acme", "AUDIT_READ"))
+                        .contentType(MediaType.APPLICATION_JSON).content(body))
+                .andExpect(status().isMethodNotAllowed());
+        mvc.perform(post("/api/audit/ask").with(AuditApiScenarios.user("w", "acme", "AUDIT_WRITE"))
+                        .contentType(MediaType.APPLICATION_JSON).content(body))
+                .andExpect(status().isForbidden());
     }
 
     @Test

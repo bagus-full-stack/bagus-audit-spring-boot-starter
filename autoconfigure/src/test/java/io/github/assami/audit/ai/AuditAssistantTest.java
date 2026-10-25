@@ -23,6 +23,7 @@ import org.springframework.ai.embedding.EmbeddingRequest;
 import org.springframework.ai.embedding.EmbeddingResponse;
 import org.springframework.ai.vectorstore.SearchRequest;
 import org.springframework.ai.vectorstore.SimpleVectorStore;
+import org.springframework.ai.vectorstore.VectorStore;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -218,6 +219,31 @@ public class AuditAssistantTest {
         model.failure = new IllegalStateException("down");
         for (int i = 0; i < 10; i++) {
             assertThatThrownBy(() -> assistant.ask("something")).isInstanceOf(AuditAssistantUnavailableException.class);
+        }
+    }
+
+    @Test
+    void aDownModelServer_logsOneWarningNotOnePerAuditWrite() throws Exception {
+        EmbeddingModel refused = new WordEmbeddings() {
+            @Override public EmbeddingResponse call(EmbeddingRequest request) { throw new IllegalStateException("connection refused"); }
+            @Override public float[] embed(Document document) { throw new IllegalStateException("connection refused"); }
+        };
+        VectorStore down = SimpleVectorStore.builder(refused).build();
+        AuditAssistantIndexer indexer = new AuditAssistantIndexer(down, repo, 0);
+        ch.qos.logback.classic.Logger logger = (ch.qos.logback.classic.Logger)
+                org.slf4j.LoggerFactory.getLogger(AuditAssistantIndexer.class);
+        ch.qos.logback.core.read.ListAppender<ch.qos.logback.classic.spi.ILoggingEvent> logs =
+                new ch.qos.logback.core.read.ListAppender<>();
+        logs.start();
+        logger.addAppender(logs);
+        try {
+            AuditLog entry = saveAndIndex(null, "A", "something");
+            for (int i = 0; i < 50; i++) indexer.onCreated(new AuditLogCreatedEvent(this, entry));
+            indexer.drain();
+            assertThat(logs.list).hasSize(1);
+            assertThat(logs.list.get(0).getFormattedMessage()).contains("connection refused");
+        } finally {
+            logger.detachAppender(logs);
         }
     }
 

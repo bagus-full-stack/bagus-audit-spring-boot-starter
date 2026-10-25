@@ -22,6 +22,7 @@ import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * Keeps the vector index in step with the audit log. Embedding calls are slow, so they run on one background
@@ -36,10 +37,14 @@ public class AuditAssistantIndexer {
     private static final Logger log = LoggerFactory.getLogger(AuditAssistantIndexer.class);
     private static final int BATCH = 50;
     static final int EMBED_PAYLOAD_MAX = 2000;
+    static final long WARN_EVERY_MS = 60_000;
 
     private final VectorStore index;
     private final AuditRepository repository;
     private final int backfill;
+    // Model server down: every audit write fails here. One line a minute, with the count, keeps the log readable.
+    private final AtomicLong lastWarn = new AtomicLong();
+    private final AtomicLong hidden = new AtomicLong();
     private final ThreadPoolExecutor worker = new ThreadPoolExecutor(1, 1, 0, TimeUnit.SECONDS,
             new ArrayBlockingQueue<>(10_000), r -> {
                 Thread t = new Thread(r, "audit-ai-indexer");
@@ -81,7 +86,6 @@ public class AuditAssistantIndexer {
 
     /** Waits until every queued change has been applied. For tests. */
     void drain() throws InterruptedException {
-        worker.getQueue().clear();
         worker.shutdown();
         worker.awaitTermination(10, TimeUnit.SECONDS);
     }
@@ -113,17 +117,28 @@ public class AuditAssistantIndexer {
         return new Document(e.getId(), text, metadata);
     }
 
+    /** Entries that fail here are not indexed: only the latest {@code audit.ai.backfill} come back after a restart. */
+    private void warn(String message) {
+        long now = System.currentTimeMillis();
+        long last = lastWarn.get();
+        if (now - last >= WARN_EVERY_MS && lastWarn.compareAndSet(last, now)) {
+            log.warn("{} ({} more since the last warning)", message, hidden.getAndSet(0));
+        } else {
+            hidden.incrementAndGet();
+        }
+    }
+
     private void submit(Runnable task) {
         try {
             worker.execute(() -> {
                 try {
                     task.run();
                 } catch (RuntimeException ex) {
-                    log.warn("Audit assistant index update failed: {}", ex.toString());
+                    warn("Audit assistant index update failed: " + ex);
                 }
             });
         } catch (RejectedExecutionException ex) {
-            log.warn("Audit assistant index queue is full: one change was not indexed");
+            warn("Audit assistant index queue is full: changes are not indexed");
         }
     }
 }
