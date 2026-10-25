@@ -23,6 +23,8 @@ Storage is pluggable (JPA, or an in-memory fallback for development).
 - [Error format](#error-format)
 - [Build and test](#build-and-test)
 - [Status and known limits](#status-and-known-limits)
+- [Releasing to Maven Central](#releasing-to-maven-central)
+- [Changelog](#changelog)
 - [License](#license)
 
 ## Features
@@ -238,7 +240,7 @@ Requires JDK 21 or newer. The suite covers service logic, model invariants, the 
 hostile input), and the sample app end to end on H2. Seven more tests run the same scenarios on a real
 PostgreSQL 16 through Testcontainers; they are skipped when Docker is not running.
 
-Publishing to Maven Central is described in [RELEASING.md](RELEASING.md).
+Publishing to Maven Central is described in [Releasing](#releasing-to-maven-central).
 
 ## Docker
 
@@ -273,8 +275,166 @@ curl -s -X POST localhost:8081/default/token -d 'grant_type=client_credentials&c
   400 ms, one container, 2M rows). Not tested: several instances, a provider other than Keycloak.
 - In a native image `@ConditionalOn*` is decided at build time. Tenancy and retention are therefore switched at runtime
   by their properties, but `audit.enabled` and `audit.api.base-path` must be set when the image is built.
-- Not implemented yet: rate limiting, caching, a MongoDB adapter (planned for 1.1, see [CHANGELOG](CHANGELOG.md)).
+- Not implemented yet: rate limiting, caching, a MongoDB adapter (planned for 1.1, see the [Changelog](#changelog)).
 - An admin can delete and erase entries, so the log is not tamper-proof; payloads are stored in clear text.
+
+## Releasing to Maven Central
+
+A release is a tag. Pushing `vX.Y.Z` runs `.github/workflows/release.yml`, which sets the version from the tag,
+runs the tests, signs the jars with GPG and **uploads** them to the Central Portal. Nothing goes public until you
+click *Publish* there (`autoPublish` is off), so the first release can be checked before it is final.
+
+The repository itself stays on `X.Y.Z-SNAPSHOT`; only the CI build sees the release version.
+
+### One-time setup (needs your accounts, so it is not automated)
+
+1. **Central Portal account** at <https://central.sonatype.com>.
+2. **Verify the namespace** `io.github.bagus-full-stack`. For a `io.github.<user>` namespace the portal asks you to
+   create a temporary public repository with a name it gives you. Do that from the GitHub account that owns it.
+3. **Generate a user token** in the portal (*Account → Generate User Token*). You get a username and a password.
+4. **Create a GPG key** and publish its public part to a key server (Central checks signatures against it):
+   ```bash
+   gpg --full-generate-key                                   # RSA 4096, with a passphrase
+   gpg --keyserver keyserver.ubuntu.com --send-keys <KEY_ID>
+   gpg --armor --export-secret-keys <KEY_ID>                 # this text is GPG_PRIVATE_KEY
+   ```
+5. **Add four GitHub secrets** (*Settings → Secrets and variables → Actions*):
+
+   | Secret | Value |
+   |---|---|
+   | `CENTRAL_USERNAME` | token username from step 3 |
+   | `CENTRAL_PASSWORD` | token password from step 3 |
+   | `GPG_PRIVATE_KEY` | the armored private key from step 4 |
+   | `GPG_PASSPHRASE` | its passphrase |
+
+### Each release
+
+1. Make sure `main` is green (CI and native build).
+2. In the [Changelog](#changelog), move the entries under a new `## [X.Y.Z] — date` heading.
+3. Tag and push:
+   ```bash
+   git tag vX.Y.Z
+   git push origin vX.Y.Z
+   ```
+4. When the workflow is green, open <https://central.sonatype.com/publishing/deployments>, check the deployment
+   (four components: `audit-spring-boot-starter-parent`, `audit-autoconfigure`, `audit-starter`, `audit-starter-jpa`)
+   and press *Publish*.
+5. The artifacts appear on Maven Central after the portal validates them (usually within minutes to an hour).
+6. Update the version in the README install snippet.
+
+A published version can never be changed or deleted from Central. If the upload is wrong, drop the deployment in the
+portal before publishing and tag again with a new version.
+
+### What was checked, and what was not
+
+Checked locally: the `release` profile builds sources and javadoc jars for the three libraries, excludes the sample,
+produces a bundle of the four expected components, and signs every file (tested with a throwaway key on Linux).
+
+Not checked: the upload itself, the namespace verification and the real key server, because they need your accounts.
+The first tag is the real test.
+
+## Changelog
+
+Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), versioning follows [Semantic Versioning](https://semver.org/).
+
+### [Unreleased]
+
+#### Fixed
+- The audit security chain disabled CSRF but still accepted a session cookie from the host's own login. It is now stateless: bearer tokens only
+- A host application's own Spring Data repositories were no longer found: the starter's `@EnableJpaRepositories` switched Boot's repository scan off. The audit package is now added to Boot's scan instead
+- The tenant id was kept in an `InheritableThreadLocal`, so a pooled thread created during one tenant's request kept that tenant for later tasks. It is now a plain `ThreadLocal`
+
+### [1.0.0] — 2026-10-21
+
+First release. The sections after the feature list record what changed while the code was hardened before publishing.
+
+#### Features
+- Multi-module Maven project: `autoconfigure`, `starter`, `starter-jpa`
+- Hexagonal architecture: `AuditRepository` port with JPA and in-memory adapters
+- Cursor-based pagination via composite keyset `(created_at DESC, id DESC)`
+- Soft delete with `@SQLDelete` + `@SQLRestriction`
+- GDPR erasure endpoint `DELETE /{id}/personal-data` with `AuditGdprEraser` SPI
+- Role-based security: `ROLE_AUDIT_READ`, `ROLE_AUDIT_WRITE`, `ROLE_AUDIT_ADMIN`
+- OAuth2 JWT resource server integration
+- Multi-tenancy: HEADER, JWT_CLAIM, SUBDOMAIN strategies
+- Bulk operations (`POST /batch`, max 100 entries, one transaction)
+- Spring Application Events: Created, Deleted, Erased
+- Micrometer counters `audit.entries.created`, `audit.entries.deleted`, `audit.entries.erased`
+- Actuator health indicator
+- GraalVM Native Image hints (`AuditRuntimeHints`)
+- RFC 9457 Problem Details error responses
+- Flyway migrations for the sample (H2 and PostgreSQL), with keyset and tenant indexes
+- GitHub Actions: CI, GraalVM native smoke test, release to Maven Central
+- Sample application with H2 (dev) / PostgreSQL (prod) profiles
+
+#### Hardening before release
+- `audit.security.issuer` is required with `jwk-set-uri`; `audit.security.principal-claim` sets `created_by`.
+- Purge works in batches (`audit.retention.batch-size`); partial index on `deleted_at`.
+- Keyset query bounds the index scan (`created_at <= cursor`): 436 ms to 0.16 ms on 2M rows.
+- Native image: tenancy and retention are switched at runtime, and the `@Modifying` queries carry their own transaction.
+- Docker: Keycloak and native overrides, k6 load script, `restart: on-failure` for the app.
+- The in-memory repository needs `audit.in-memory=true`; without it, startup fails when no `AuditRepository` exists.
+- `POST /batch` accepts at most 100 entries, to bound memory per request.
+- Soft delete and GDPR erasure log the acting user at INFO level.
+- README lists every schema script; unused setters removed from `AuditLogEntity`.
+
+#### Release
+- `release` Maven profile (sources, javadoc, GPG signing, Central Portal upload) and the [release guide](#releasing-to-maven-central).
+
+#### Added
+- Docker: multi-stage `Dockerfile`, `docker-compose.yml` (PostgreSQL + mock OAuth2), `docker/smoke-test.sh`.
+- `audit.security.roles-claim` / `audit.security.jwk-set-uri`; JWT roles are now mapped to `ROLE_*`.
+- Robustness tests (model, service, tenant filter, in-memory concurrency, REST validation and role matrix),
+  sample end-to-end tests on H2 and on PostgreSQL (Testcontainers).
+
+#### Fixed (CI and packaging)
+- `mvnw` is now committed as executable (`100755`). Every CI run since the first push failed with
+  `./mvnw: Permission denied`; the same build now passes on Linux with JDK 21.
+- `Dockerfile`: `HEALTHCHECK` on `/actuator/health` (no curl needed).
+- GDPR erasure now increments `version`.
+- `audit.security.roles-claim` accepts a nested path (`realm_access.roles`) and exact names with dots.
+- A startup warning when `jwk-set-uri` is used without `issuer` and `audience`; the sample's `prod` profile and
+  `docker-compose.yml` set them (`JWT_ISSUER`, `JWT_AUDIENCE`).
+
+#### Changed
+- **Breaking:** `POST /batch` returns the list of saved entries directly; the `{results, succeeded, failed}` wrapper
+  is gone (`failed` was always 0).
+- Optional retention: `audit.retention.deleted-days` and `audit.retention.cron` purge old soft-deleted rows.
+  New port method `AuditRepository.purgeDeleted(Instant)` (default: does nothing).
+- Sample, PostgreSQL: migration `V3` converts the instant columns to `TIMESTAMPTZ` (existing values read as UTC).
+  I could not reproduce a cursor error with plain `TIMESTAMP` in a daylight-saving zone, so this is preventive.
+- Metrics: the `audit.repository.size` gauge (a full `COUNT(*)` on every scrape) is replaced by the counters
+  `audit.entries.created`, `audit.entries.deleted` and `audit.entries.erased`. `AuditService.count()` is removed.
+- A listener that throws no longer turns a committed write into an error response; it is logged.
+
+#### Security
+- `audit.security.issuer` and `audit.security.audience` validate the token when the decoder is built from `jwk-set-uri`.
+- `audit.tenancy.enforce-isolation` now defaults to `true`: with tenancy on, a request without a tenant used to read every tenant's entries.
+- With `HEADER` or `SUBDOMAIN`, a tenant that differs from the token's tenant claim is rejected with `403`.
+- `DELETE` now clears `payload`, `created_by` and `last_modified_by` (a deleted entry could not be erased afterwards).
+  Rows deleted by an earlier version keep their data: run `UPDATE audit_log SET payload = NULL, created_by = NULL, last_modified_by = NULL WHERE deleted_at IS NOT NULL`.
+
+#### Fixed
+- The starter now registers `AuditLogEntity` with the host's entity scan (host apps outside `io.github.assami.audit` failed to start).
+- Sample: Flyway `V1` no longer uses partial indexes on H2 (vendor scripts under `db/vendor/{vendor}`), prod profile uses the PostgreSQL driver and disables the H2 console, `flyway-database-postgresql` added.
+
+#### Fixed
+- `audit-starter` and `audit-starter-jpa` now include the OAuth2 resource server; the security
+  configuration needs it, and only `audit-starter-full` had it
+
+#### Removed
+- Settings that no code read: `audit.rate-limit.*`, `audit.cache.*`, `audit.async.*`,
+  `audit.api.cors.*`, `audit.api.bulk-atomic`, `audit.api.page-size-*`, `audit.soft-delete.*`,
+  `audit.security.enabled`, `audit.security.roles.*`
+- Unused dependencies: Resilience4j, Caffeine, Redis, Spring Retry, AOP, Spring Cache and Spring Data REST
+  (Spring Data REST could export the audit table over HTTP outside the audit security chain).
+  The `audit-starter-full` module is removed: it only depended on `audit-starter-jpa`, use that instead
+- Unused i18n bundles (`audit-messages*.properties`): no message source ever read them
+- `AuditMetrics.recordOperation` (never called) and the `audit.operations.total` /
+  `audit.operation.duration` metrics; only `audit.repository.size` remains
+
+#### Planned
+- MongoDB adapter
 
 ## License
 

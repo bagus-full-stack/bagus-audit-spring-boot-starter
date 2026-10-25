@@ -133,7 +133,7 @@
   </build>
 
   <profiles>
-    <!-- Maven Central release: ./mvnw -P release deploy (see RELEASING.md). Needs a GPG key and Central Portal credentials. -->
+    <!-- Maven Central release: ./mvnw -P release deploy (see the Releasing section of README.md). Needs a GPG key and Central Portal credentials. -->
     <profile>
       <id>release</id>
       <build>

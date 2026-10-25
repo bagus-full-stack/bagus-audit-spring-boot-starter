@@ -1,6 +1,6 @@
 name: Release
 
-# Push a tag such as v1.0.0 to upload the release to the Maven Central Portal (see RELEASING.md).
+# Push a tag such as v1.0.0 to upload the release to the Maven Central Portal (see the Releasing section of README.md).
 on:
   push:
     tags:
