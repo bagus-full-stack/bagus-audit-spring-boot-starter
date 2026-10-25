@@ -208,6 +208,8 @@ and the model answers from those entries only. `sources` lists the entries the a
   is behind. Deleting or erasing an entry also removes it from the index.
 - **The model runs where you put it.** With a local Ollama the audit data stays on your network. Pointing Spring AI at
   a hosted model sends the question and the matching entries (payloads included) to that provider.
+- **Busy:** at most 3 questions run at once per instance; the next one gets `429` until a slot frees up, so one caller
+  cannot starve the indexer that shares the model server.
 - **Failures** are a `503` problem response; the audit write itself never depends on the model.
 - **Index:** you must define a `VectorStore` bean (pgvector, ...) for real use. For a trial, `audit.ai.in-memory-index=true`
   gives an in-memory index: it grows with every audit write, is lost on restart (the latest `audit.ai.backfill` entries,

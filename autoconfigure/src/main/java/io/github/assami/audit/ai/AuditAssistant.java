@@ -12,6 +12,7 @@ import org.springframework.ai.vectorstore.filter.FilterExpressionBuilder;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.Semaphore;
 
 /**
  * Answers a question about the audit log: finds the closest entries in the vector index, re-reads each one
@@ -37,6 +38,13 @@ public class AuditAssistant {
     private final ChatClient chat;
     private final int topK;
 
+    /**
+     * Each question costs an embedding call and a model answer (seconds), and the indexer shares the same model
+     * server. Without a cap, one reader token can queue so many questions that indexing stops.
+     * shortcut: a fixed 3 per instance, make it a property when a deployment needs another number.
+     */
+    private final Semaphore slots = new Semaphore(3);
+
     public AuditAssistant(AuditService service, VectorStore index, ChatClient chat, int topK) {
         this.service = service;
         this.index = index;
@@ -45,6 +53,15 @@ public class AuditAssistant {
     }
 
     public Answer ask(String question) {
+        if (!slots.tryAcquire()) throw new AuditAssistantBusyException();
+        try {
+            return answer(question);
+        } finally {
+            slots.release();
+        }
+    }
+
+    private Answer answer(String question) {
         List<AuditLog> entries = retrieve(question);
         if (entries.isEmpty()) return new Answer(NO_ENTRIES, List.of());
 
@@ -91,7 +108,13 @@ public class AuditAssistant {
     }
 
     private static String describe(AuditLog e) {
-        return "[" + e.getId() + "] " + e.getCreatedAt() + " " + e.getLevel() + " " + e.getAction()
-                + " by " + e.getCreatedBy() + (e.getPayload() != null ? ": " + cut(e.getPayload(), PROMPT_PAYLOAD_MAX) : "");
+        return "[" + e.getId() + "] " + e.getCreatedAt() + " " + e.getLevel() + " " + data(e.getAction())
+                + " by " + data(e.getCreatedBy())
+                + (e.getPayload() != null ? ": " + data(cut(e.getPayload(), PROMPT_PAYLOAD_MAX)) : "");
+    }
+
+    /** Entry text sits between {@code <entries>} tags: a "<" in it could close the block and pass as an instruction. */
+    private static String data(String text) {
+        return text == null ? null : text.replace("<", "&lt;");
     }
 }

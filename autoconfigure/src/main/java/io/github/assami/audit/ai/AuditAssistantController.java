@@ -37,6 +37,11 @@ public class AuditAssistantController {
         return assistant.ask(request.question());
     }
 
+    @ExceptionHandler(AuditAssistantBusyException.class)
+    ProblemDetail busy(AuditAssistantBusyException ex) {
+        return ProblemDetail.forStatusAndDetail(HttpStatus.TOO_MANY_REQUESTS, ex.getMessage());
+    }
+
     @ExceptionHandler(AuditAssistantUnavailableException.class)
     ProblemDetail unavailable(AuditAssistantUnavailableException ex) {
         log.warn("Audit assistant failed: {}", ex.getCause().toString());
