@@ -35,6 +35,7 @@ public class AuditAssistantIndexer {
 
     private static final Logger log = LoggerFactory.getLogger(AuditAssistantIndexer.class);
     private static final int BATCH = 50;
+    static final int EMBED_PAYLOAD_MAX = 2000;
 
     private final VectorStore index;
     private final AuditRepository repository;
@@ -106,8 +107,9 @@ public class AuditAssistantIndexer {
     static Document toDocument(AuditLog e) {
         Map<String, Object> metadata = new HashMap<>();
         if (e.getTenantId() != null) metadata.put("tenantId", e.getTenantId());
+        // an embedding model has a small input limit: a longer text makes the call fail and the entry is never indexed
         String text = e.getAction() + " " + e.getLevel() + " " + e.getCreatedBy()
-                + (e.getPayload() != null ? " " + e.getPayload() : "");
+                + (e.getPayload() != null ? " " + AuditAssistant.cut(e.getPayload(), EMBED_PAYLOAD_MAX) : "");
         return new Document(e.getId(), text, metadata);
     }
 

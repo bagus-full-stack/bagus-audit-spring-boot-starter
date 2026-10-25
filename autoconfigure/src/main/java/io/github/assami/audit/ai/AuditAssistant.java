@@ -80,8 +80,18 @@ public class AuditAssistant {
         return live;
     }
 
+    /**
+     * A payload can be 65 536 characters. Past the model's context window Ollama drops the start of the prompt,
+     * which is the system rule, so every entry is cut to a size that leaves room for all {@code topK} of them.
+     */
+    static final int PROMPT_PAYLOAD_MAX = 1000;
+
+    static String cut(String text, int max) {
+        return text.length() <= max ? text : text.substring(0, max) + "...";
+    }
+
     private static String describe(AuditLog e) {
         return "[" + e.getId() + "] " + e.getCreatedAt() + " " + e.getLevel() + " " + e.getAction()
-                + " by " + e.getCreatedBy() + (e.getPayload() != null ? ": " + e.getPayload() : "");
+                + " by " + e.getCreatedBy() + (e.getPayload() != null ? ": " + cut(e.getPayload(), PROMPT_PAYLOAD_MAX) : "");
     }
 }

@@ -33,10 +33,19 @@ import org.springframework.context.annotation.Bean;
 @ConditionalOnProperty(name = "audit.ai.enabled", havingValue = "true", matchIfMissing = true)
 public class AuditAiAutoConfiguration {
 
-    /** In-memory index. Define your own VectorStore bean to keep it across restarts. */
+    private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(AuditAiAutoConfiguration.class);
+
+    /** Same opt-in as the in-memory repository: a host that wants this module for real defines its own VectorStore. */
     @Bean
     @ConditionalOnMissingBean(VectorStore.class)
-    public VectorStore auditVectorStore(EmbeddingModel embeddings) {
+    public VectorStore auditVectorStore(EmbeddingModel embeddings, AuditProperties properties) {
+        if (!properties.getAi().isInMemoryIndex()) {
+            throw new IllegalStateException("The audit assistant needs a VectorStore bean (pgvector, ...). "
+                    + "For a trial only, set audit.ai.in-memory-index=true: that index grows with every audit write, "
+                    + "is lost on restart, and each instance sees only its own writes.");
+        }
+        log.warn("audit.ai.in-memory-index=true: the audit assistant index lives in memory. "
+                + "It grows with every audit write and each instance sees only its own writes.");
         return SimpleVectorStore.builder(embeddings).build();
     }
 

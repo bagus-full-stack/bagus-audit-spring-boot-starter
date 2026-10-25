@@ -144,6 +144,12 @@ public class AuditProperties {
         /** Turns the assistant off even when audit-starter-ai is on the classpath. */
         private boolean enabled = true;
 
+        /**
+         * Allows the default index, which lives in memory: it grows with every audit write and each instance only
+         * sees its own writes. Without this, define a {@code VectorStore} bean (pgvector, ...).
+         */
+        private boolean inMemoryIndex = false;
+
         /** Audit entries handed to the model as context for one question. */
         private int topK = 8;
 
@@ -152,6 +158,8 @@ public class AuditProperties {
 
         public boolean isEnabled()                 { return enabled; }
         public void setEnabled(boolean enabled)    { this.enabled = enabled; }
+        public boolean isInMemoryIndex()           { return inMemoryIndex; }
+        public void setInMemoryIndex(boolean v)    { this.inMemoryIndex = v; }
         public int getTopK()                       { return topK; }
         public void setTopK(int topK)              { this.topK = topK; }
         public int getBackfill()                   { return backfill; }

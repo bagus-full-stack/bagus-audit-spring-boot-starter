@@ -22,6 +22,7 @@ services:
       ollama:
         condition: service_healthy
     environment:
+      AUDIT_AI_IN_MEMORY_INDEX: "true"          # a trial: see the audit assistant section of the README
       SPRING_AI_OLLAMA_BASE_URL: http://ollama:11434
       SPRING_AI_OLLAMA_CHAT_OPTIONS_MODEL: llama3.2:1b
       SPRING_AI_OLLAMA_EMBEDDING_OPTIONS_MODEL: nomic-embed-text

@@ -209,15 +209,19 @@ and the model answers from those entries only. `sources` lists the entries the a
 - **The model runs where you put it.** With a local Ollama the audit data stays on your network. Pointing Spring AI at
   a hosted model sends the question and the matching entries (payloads included) to that provider.
 - **Failures** are a `503` problem response; the audit write itself never depends on the model.
-- **Index:** in memory by default, fed in the background from the audit events, with the latest `audit.ai.backfill`
-  entries (default 1000) indexed at startup. Define your own `VectorStore` bean (pgvector, ...) to keep it across restarts.
-  With several instances each one has its own index.
+- **Index:** you must define a `VectorStore` bean (pgvector, ...) for real use. For a trial, `audit.ai.in-memory-index=true`
+  gives an in-memory index: it grows with every audit write, is lost on restart (the latest `audit.ai.backfill` entries,
+  default 1000, are indexed again at startup), and each instance only sees its own writes. Without one of the two the
+  application does not start. The index is fed in the background from the audit events.
+- **Long payloads** are cut before use: to 2 000 characters for the index and 1 000 per entry in the prompt, so one big
+  entry cannot push the model's instructions out of its context window.
 - **Prompt injection:** payloads are text written by users. The system prompt tells the model to treat entries as
   data, which lowers the risk but does not remove it: a model can still be misled by a crafted payload.
 
 | Property | Default | Meaning |
 |---|---|---|
 | `audit.ai.enabled` | `true` | Turn the assistant off even when `audit-starter-ai` is present |
+| `audit.ai.in-memory-index` | `false` | Allow the default in-memory index (trial only) |
 | `audit.ai.top-k` | `8` | Entries handed to the model for one question |
 | `audit.ai.backfill` | `1000` | Latest entries indexed at startup; `0` indexes none |
 
