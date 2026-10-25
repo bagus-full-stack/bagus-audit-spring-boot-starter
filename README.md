@@ -267,7 +267,7 @@ Try it: `docker compose -f docker-compose.yml -f docker-compose.ai.yml up -d --b
 - Application events: `AuditLogCreatedEvent`, `AuditLogDeletedEvent`, `AuditLogErasedEvent`.
 - Micrometer counters `audit.entries.created`, `audit.entries.deleted` and `audit.entries.erased`. They count
   events in memory (since the last restart) and never query the database.
-- Event listeners run after the row is committed. If one throws, the error is logged and the request still succeeds.
+- The events go out right after the write. If the write happens inside your own transaction, the built-in metrics and assistant index wait for the commit, so a rolled-back write is not counted; use `@TransactionalEventListener` in your own listeners too. If a listener throws, the error is logged and the request still succeeds.
 - Actuator health indicator `auditHealthIndicator`: a primary-key lookup, cheap on large tables.
 
 ## Error format

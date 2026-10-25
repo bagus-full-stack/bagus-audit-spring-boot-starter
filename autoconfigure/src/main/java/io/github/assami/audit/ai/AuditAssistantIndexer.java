@@ -13,6 +13,7 @@ import org.springframework.ai.document.Document;
 import org.springframework.ai.vectorstore.VectorStore;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.event.EventListener;
+import org.springframework.transaction.event.TransactionalEventListener;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -58,19 +59,20 @@ public class AuditAssistantIndexer {
         this.backfill = backfill;
     }
 
-    @EventListener
+    // After the commit, so a rolled-back write is never indexed; at once when there is no transaction.
+    @TransactionalEventListener(fallbackExecution = true)
     public void onCreated(AuditLogCreatedEvent event) {
         AuditLog entry = event.getAuditLog();
         submit(() -> index.add(List.of(toDocument(entry))));
     }
 
     /** A deleted or erased entry leaves the index: the index must not keep what GDPR erasure removed. */
-    @EventListener
+    @TransactionalEventListener(fallbackExecution = true)
     public void onDeleted(AuditLogDeletedEvent event) {
         submit(() -> index.delete(List.of(event.getAuditLogId())));
     }
 
-    @EventListener
+    @TransactionalEventListener(fallbackExecution = true)
     public void onErased(AuditLogErasedEvent event) {
         submit(() -> index.delete(List.of(event.getAuditLogId())));
     }

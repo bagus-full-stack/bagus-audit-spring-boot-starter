@@ -132,8 +132,9 @@ public class AuditService {
     }
 
     /**
-     * The row is already committed when events go out, so a failing listener must not turn
-     * a successful write into an error response (the caller would retry and duplicate it).
+     * A failing listener must not turn a successful write into an error response (the caller would retry and
+     * duplicate it). Inside a host transaction the row is not committed yet when this runs: the built-in listeners
+     * are {@code @TransactionalEventListener}s and wait for the commit; a host's own listeners should do the same.
      */
     private void publish(ApplicationEvent event) {
         try {

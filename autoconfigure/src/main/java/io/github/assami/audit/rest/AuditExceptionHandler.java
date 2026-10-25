@@ -1,8 +1,6 @@
 package io.github.assami.audit.rest;
 
 import io.github.assami.audit.exception.AuditNotFoundException;
-import io.github.assami.audit.exception.MissingTenantException;
-import io.github.assami.audit.exception.TenantMismatchException;
 import org.springframework.http.*;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
@@ -13,9 +11,11 @@ import java.net.URI;
 import java.time.Instant;
 
 /**
- * Global exception handler producing RFC 9457 Problem Details responses.
+ * Exception handler producing RFC 9457 Problem Details responses for the audit controllers only.
+ * Without the package limit it would also answer for the host application's own controllers, turning
+ * their {@code IllegalArgumentException} into a 400 with the raw message.
  */
-@RestControllerAdvice
+@RestControllerAdvice(basePackages = {"io.github.assami.audit.rest", "io.github.assami.audit.ai"})
 public class AuditExceptionHandler extends ResponseEntityExceptionHandler {
 
     private static final String TYPE_BASE = "https://assami.dev/problems/audit/";
@@ -25,16 +25,6 @@ public class AuditExceptionHandler extends ResponseEntityExceptionHandler {
         return problem(HttpStatus.NOT_FOUND, ex.getErrorCode(), ex.getMessage());
     }
 
-    @ExceptionHandler(MissingTenantException.class)
-    ProblemDetail handleMissingTenant(MissingTenantException ex) {
-        return problem(HttpStatus.BAD_REQUEST, ex.getErrorCode(), ex.getMessage());
-    }
-
-    @ExceptionHandler(TenantMismatchException.class)
-    ProblemDetail handleTenantMismatch(TenantMismatchException ex) {
-        return problem(HttpStatus.FORBIDDEN, ex.getErrorCode(), ex.getMessage());
-    }
-
     @ExceptionHandler(IllegalArgumentException.class)
     ProblemDetail handleIllegalArgument(IllegalArgumentException ex) {
         return problem(HttpStatus.BAD_REQUEST, "INVALID_ARGUMENT", ex.getMessage());
@@ -42,7 +32,7 @@ public class AuditExceptionHandler extends ResponseEntityExceptionHandler {
 
     // ── helper ───────────────────────────────────────────────────────────────
 
-    private ProblemDetail problem(HttpStatus status, String code, String detail) {
+    static ProblemDetail problem(HttpStatus status, String code, String detail) {
         ProblemDetail pd = ProblemDetail.forStatusAndDetail(status, detail);
         pd.setType(URI.create(TYPE_BASE + code.toLowerCase().replace('_', '-')));
         pd.setTitle(status.getReasonPhrase());

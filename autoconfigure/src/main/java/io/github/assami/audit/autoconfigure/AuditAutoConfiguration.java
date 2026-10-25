@@ -13,6 +13,7 @@ import io.github.assami.audit.port.AuditRepository;
 import io.github.assami.audit.properties.AuditProperties;
 import io.github.assami.audit.rest.AuditController;
 import io.github.assami.audit.rest.AuditExceptionHandler;
+import io.github.assami.audit.rest.AuditTenantExceptionHandler;
 import io.github.assami.audit.security.AuditSecurityConfig;
 import io.github.assami.audit.service.AuditService;
 import io.github.assami.audit.tenancy.AuditTenantFilter;
@@ -90,6 +91,12 @@ public class AuditAutoConfiguration {
     @ConditionalOnMissingBean
     public AuditExceptionHandler auditExceptionHandler() {
         return new AuditExceptionHandler();
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
+    public AuditTenantExceptionHandler auditTenantExceptionHandler() {
+        return new AuditTenantExceptionHandler();
     }
 
     // ── Tenancy filter ────────────────────────────────────────────────────────

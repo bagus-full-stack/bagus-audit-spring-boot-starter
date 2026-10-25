@@ -1,5 +1,9 @@
 package io.github.assami.audit.sample;
 
+import io.github.assami.audit.model.AuditLog;
+import io.github.assami.audit.observability.AuditMetrics;
+import io.github.assami.audit.service.AuditService;
+import io.micrometer.core.instrument.MeterRegistry;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
@@ -11,9 +15,13 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.support.TransactionTemplate;
 
 import java.util.List;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -30,6 +38,9 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 class SampleH2IntegrationTest {
 
     @Autowired MockMvc mvc;
+    @Autowired AuditService auditService;
+    @Autowired MeterRegistry registry;
+    @Autowired PlatformTransactionManager transactions;
 
     @Test
     void contextStarts_andTheSchemaMatchesTheEntity() {
@@ -69,6 +80,37 @@ class SampleH2IntegrationTest {
         mvc.perform(post("/api/audit/ask").with(AuditApiScenarios.user("w", "acme", "AUDIT_WRITE"))
                         .contentType(MediaType.APPLICATION_JSON).content(body))
                 .andExpect(status().isForbidden());
+    }
+
+    /** The starter's error handler is for its own controllers: a host's bug stays the host's error, not a 400. */
+    @Test
+    void aHostControllerError_isNotHandledByTheAuditStarter() {
+        assertThatThrownBy(() -> mvc.perform(get("/host/boom").with(AuditApiScenarios.user("u", null))))
+                .hasRootCauseInstanceOf(IllegalArgumentException.class);
+    }
+
+    /** Inside the host's own transaction, a write that rolls back must not count as created. */
+    @Test
+    void aRolledBackWrite_isNotCounted_aCommittedOneIs() {
+        double before = created();
+        TransactionTemplate tx = new TransactionTemplate(transactions);
+
+        tx.executeWithoutResult(s -> { auditService.create(entry()); s.setRollbackOnly(); });
+        assertThat(created()).isEqualTo(before);
+
+        tx.executeWithoutResult(s -> auditService.create(entry()));
+        assertThat(created()).isEqualTo(before + 1);
+
+        auditService.create(entry());   // no transaction: counted at once
+        assertThat(created()).isEqualTo(before + 2);
+    }
+
+    private double created() {
+        return registry.get(AuditMetrics.METRIC_CREATED).counter().count();
+    }
+
+    private static AuditLog.Builder entry() {
+        return AuditLog.builder().action("TX_TEST").createdBy("tester");
     }
 
     @Test

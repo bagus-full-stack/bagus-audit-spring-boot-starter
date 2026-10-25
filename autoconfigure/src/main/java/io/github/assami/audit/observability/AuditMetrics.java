@@ -5,11 +5,14 @@ import io.github.assami.audit.event.AuditLogDeletedEvent;
 import io.github.assami.audit.event.AuditLogErasedEvent;
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.MeterRegistry;
-import org.springframework.context.event.EventListener;
+import org.springframework.transaction.event.TransactionalEventListener;
 
 /**
  * Micrometer counters fed by the audit events. Counting rows with a query on every scrape
  * would scan the whole table, so nothing here touches the database.
+ * <p>
+ * The listeners wait for the commit when the write happens inside the host's transaction, so a rolled-back
+ * write is not counted. Outside a transaction they run at once.
  *
  * <ul>
  *   <li>{@code audit.entries.created}, {@code audit.entries.deleted}, {@code audit.entries.erased}</li>
@@ -31,12 +34,12 @@ public class AuditMetrics {
         this.erased  = Counter.builder(METRIC_ERASED).description("Audit entries with personal data erased").register(registry);
     }
 
-    @EventListener
+    @TransactionalEventListener(fallbackExecution = true)
     void onCreated(AuditLogCreatedEvent event) { created.increment(); }
 
-    @EventListener
+    @TransactionalEventListener(fallbackExecution = true)
     void onDeleted(AuditLogDeletedEvent event) { deleted.increment(); }
 
-    @EventListener
+    @TransactionalEventListener(fallbackExecution = true)
     void onErased(AuditLogErasedEvent event) { erased.increment(); }
 }
