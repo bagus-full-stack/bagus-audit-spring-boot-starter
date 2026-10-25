@@ -4,8 +4,8 @@ package io.github.assami.audit.port;
  * Optional SPI: implement this bean to customize what "personal data erasure"
  * means for your application domain before the log row is cleared.
  *
- * <p>If no bean of this type is registered the default implementation is used,
- * which simply nullifies the {@code payload} field.</p>
+ * <p>If no bean of this type is registered, nothing extra happens: the repository
+ * always clears {@code payload}, {@code createdBy} and {@code lastModifiedBy}.</p>
  *
  * <pre>{@code
  * @Bean

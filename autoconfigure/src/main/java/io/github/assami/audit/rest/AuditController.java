@@ -47,15 +47,7 @@ public class AuditController {
     @ResponseStatus(HttpStatus.CREATED)
     public AuditLogResponse create(@Valid @RequestBody CreateAuditRequest req) {
         String actor = currentActor();
-        AuditLog saved = service.create(
-                AuditLog.builder()
-                        .action(req.action())
-                        .level(req.level() != null ? req.level() : AuditLevel.INFO)
-                        .payload(req.payload())
-                        .createdBy(actor)
-                        .lastModifiedBy(actor)
-        );
-        return AuditLogResponse.from(saved);
+        return AuditLogResponse.from(service.create(toBuilder(req, actor)));
     }
 
     // ── POST /api/audit/batch ────────────────────────────────────────────────
@@ -67,17 +59,19 @@ public class AuditController {
     @ResponseStatus(HttpStatus.CREATED)
     public List<AuditLogResponse> createBatch(@Valid @RequestBody BatchAuditRequest req) {
         String actor = currentActor();
-        List<AuditLog.Builder> builders = req.entries().stream()
-                .map(e -> AuditLog.builder()
-                        .action(e.action())
-                        .level(e.level() != null ? e.level() : AuditLevel.INFO)
-                        .payload(e.payload())
-                        .createdBy(actor)
-                        .lastModifiedBy(actor))
-                .toList();
+        List<AuditLog.Builder> builders = req.entries().stream().map(e -> toBuilder(e, actor)).toList();
 
         // All-or-nothing: the batch is one transaction, so it never partially fails.
         return service.createBatch(builders).stream().map(AuditLogResponse::from).toList();
+    }
+
+    private static AuditLog.Builder toBuilder(CreateAuditRequest req, String actor) {
+        return AuditLog.builder()
+                .action(req.action())
+                .level(req.level() != null ? req.level() : AuditLevel.INFO)
+                .payload(req.payload())
+                .createdBy(actor)
+                .lastModifiedBy(actor);
     }
 
     /** The authenticated caller, never a name supplied in the request body. */

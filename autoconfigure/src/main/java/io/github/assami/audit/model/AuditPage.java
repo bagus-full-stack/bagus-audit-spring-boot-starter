@@ -17,8 +17,4 @@ public record AuditPage(
     public static AuditPage of(List<AuditLog> content, String nextCursor) {
         return new AuditPage(content, nextCursor, nextCursor != null);
     }
-
-    public static AuditPage empty() {
-        return new AuditPage(List.of(), null, false);
-    }
 }

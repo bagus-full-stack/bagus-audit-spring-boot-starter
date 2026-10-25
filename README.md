@@ -89,7 +89,7 @@ another tool). The indexes are not optional: without them, listing and purging s
 | `vendor/postgresql/V3__timestamptz.sql` | PostgreSQL only: `TIMESTAMPTZ` columns |
 | `vendor/h2/V3__deleted_index.sql`, `vendor/postgresql/V4__deleted_index.sql` | index used by the purge job |
 
-The sample sets `ddl-auto: validate`. The purge job's SQL runs on PostgreSQL and H2 only. With several instances, set `audit.retention.deleted-days` on one of them: every instance with a value above 0 runs the purge at the same time.
+The sample sets `ddl-auto: validate`. The purge job's SQL runs on PostgreSQL and H2 only. With several instances, set `audit.retention.deleted-days` on one of them: every instance with a value above 0 runs the purge at the same time. The starter also turns on Spring scheduling (`@EnableScheduling`) for the whole application, so any `@Scheduled` method of yours that was inactive for lack of it starts running.
 
 ## REST API
 

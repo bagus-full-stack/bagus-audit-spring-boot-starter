@@ -47,26 +47,14 @@ public class AuditService {
     // ── Create ───────────────────────────────────────────────────────────────
 
     public AuditLog create(AuditLog.Builder builder) {
-        // Inject service name and current tenant
-        builder.serviceName(properties.getName());
-        if (TenantContext.get() != null) {
-            builder.tenantId(TenantContext.get());
-        }
-        AuditLog saved = repository.save(builder.build());
+        AuditLog saved = repository.save(build(builder));
         publish(new AuditLogCreatedEvent(this, saved));
         log.debug("Audit log created: {}", saved.getId());
         return saved;
     }
 
     public List<AuditLog> createBatch(List<AuditLog.Builder> builders) {
-        List<AuditLog> logs = builders.stream()
-                .map(b -> {
-                    b.serviceName(properties.getName());
-                    if (TenantContext.get() != null) b.tenantId(TenantContext.get());
-                    return b.build();
-                })
-                .toList();
-        List<AuditLog> saved = repository.saveAll(logs);
+        List<AuditLog> saved = repository.saveAll(builders.stream().map(this::build).toList());
         saved.forEach(l -> publish(new AuditLogCreatedEvent(this, l)));
         return saved;
     }
@@ -128,6 +116,14 @@ public class AuditService {
         } while (removed >= batch);
         if (total > 0) log.info("Purged {} soft-deleted audit entries older than {}", total, olderThan);
         return total;
+    }
+
+    /** Stamps the service name and the current tenant, which a caller never supplies. */
+    private AuditLog build(AuditLog.Builder builder) {
+        builder.serviceName(properties.getName());
+        String tenant = TenantContext.get();
+        if (tenant != null) builder.tenantId(tenant);
+        return builder.build();
     }
 
     private static String actor() {
