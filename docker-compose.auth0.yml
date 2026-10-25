@@ -1,0 +1,12 @@
+# Same stack, but the tokens use the claim layout of Auth0: namespaced custom claims instead of `roles` and `tenant_id`.
+#   docker compose -f docker-compose.yml -f docker-compose.auth0.yml up -d --build
+#   TOKEN_URL=http://localhost:8081/auth0/token ./docker/smoke-test.sh
+# The second issuer "auth0" of docker/mock-oauth2.json signs them, so this checks audit.security.roles-claim,
+# audit.tenancy.jwt-claim and the issuer check against a provider other than Keycloak.
+services:
+  audit:
+    environment:
+      JWK_SET_URI: http://mock-oauth2:8080/auth0/jwks
+      JWT_ISSUER: http://localhost:8081/auth0
+      AUDIT_SECURITY_ROLES_CLAIM: https://app.example.com/roles
+      AUDIT_TENANCY_JWT_CLAIM: https://app.example.com/tenant

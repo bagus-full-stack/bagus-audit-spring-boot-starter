@@ -144,7 +144,8 @@ Cursors are opaque; a malformed one gives `400`.
 | Keycloak (realm roles) | `realm_access.roles` | nested path |
 | Auth0 | your namespaced claim, e.g. `https://app.example.com/roles` | exact name, dots allowed |
 
-  Tested with a mock OAuth2 server and a real Keycloak 26 (`docker-compose.keycloak.yml`); check your own provider's tokens.
+  Tested with a mock OAuth2 server, a real Keycloak 26 (`docker-compose.keycloak.yml`) and Auth0-style namespaced claims
+  (`docker-compose.auth0.yml`); check your own provider's tokens.
 - `audit.security.principal-claim` (default `sub`) picks the claim stored as `created_by`. Keycloak's `sub` is a UUID: use `preferred_username`.
   With neither, the application starts, logs a warning, and every audit request is rejected.
 - Spring Boot drops its default security once any `SecurityFilterChain` exists. The starter adds a fallback chain
@@ -258,6 +259,24 @@ docker compose -f docker-compose.yml -f docker-compose.keycloak.yml up -d --buil
 KEYCLOAK_TOKEN_URL=http://localhost:8082/realms/audit/protocol/openid-connect/token ./docker/smoke-test.sh
 ```
 
+Same stack with Auth0's claim layout (namespaced `https://app.example.com/roles` and `/tenant`, no Keycloak):
+
+```bash
+docker compose -f docker-compose.yml -f docker-compose.auth0.yml up -d --build
+TOKEN_URL=http://localhost:8081/auth0/token ./docker/smoke-test.sh
+```
+
+Two app instances on one database (writes, cursors across instances, tenants, delete, and the purge job running on both at once):
+
+```bash
+docker compose -f docker-compose.yml -f docker-compose.multi.yml up -d --build
+./docker/multi-instance-test.sh     # 13 checks
+```
+
+The sample's connection pool is 30 (`DATABASE_POOL_SIZE` changes it). The starter sets no pool size: in your own application
+it is `spring.datasource.hikari.maximum-pool-size`. Size it to your concurrent requests: with 50 clients, a pool of 10 gave a
+p95 of 1.1 s and a pool of 30 gave 0.14 to 0.27 s.
+
 Load test (k6, 30 writers + 20 readers, 40 s; needs tokens in `WRITER` and `READER`): `docker/load-test.js`.
 
 The mock OAuth2 server issues tokens for `admin-acme`, `writer-acme`, `reader-acme` and `reader-globex`
@@ -270,9 +289,9 @@ curl -s -X POST localhost:8081/default/token -d 'grant_type=client_credentials&c
 ## Status and known limits
 
 - Version is `1.0.0-SNAPSHOT`; the API may still change.
-- Tested: H2 and PostgreSQL 16 (Testcontainers), a mock OAuth2 server and Keycloak 26, the JVM image and the GraalVM
+- Tested: H2 and PostgreSQL 16 (Testcontainers), a mock OAuth2 server and Keycloak 26, Auth0-style claims, two instances on one database, the JVM image and the GraalVM
   native image (`docker build --target runtime-native .`, 28/28 smoke checks), and a k6 load run (200 req/s, p95 about
-  400 ms, one container, 2M rows). Not tested: several instances, a provider other than Keycloak.
+  400 ms, one container, 2M rows). Not tested: more than two instances, a provider other than Keycloak and Auth0-style claims.
 - In a native image `@ConditionalOn*` is decided at build time. Tenancy and retention are therefore switched at runtime
   by their properties, but `audit.enabled` and `audit.api.base-path` must be set when the image is built.
 - Not implemented yet: rate limiting, caching, a MongoDB adapter (planned for 1.1, see the [Changelog](#changelog)).

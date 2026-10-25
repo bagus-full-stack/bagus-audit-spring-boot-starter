@@ -1,0 +1,22 @@
+# Same stack with a second app instance on the same database (port 8090), to check what breaks with several instances.
+#   docker compose -f docker-compose.yml -f docker-compose.multi.yml up -d --build
+#   ./docker/multi-instance-test.sh
+# Both instances run the purge job every 3 seconds, in small batches, so they collide on purpose.
+x-purge: &purge
+  AUDIT_RETENTION_DELETED_DAYS: "1"
+  AUDIT_RETENTION_CRON: "*/3 * * * * *"
+  AUDIT_RETENTION_BATCH_SIZE: "50"
+
+services:
+  audit:
+    environment: *purge
+
+  audit2:
+    extends:
+      file: docker-compose.yml
+      service: audit
+    environment:
+      <<: *purge
+      SPRING_PROFILES_ACTIVE: prod
+    ports: !override
+      - "8090:8080"

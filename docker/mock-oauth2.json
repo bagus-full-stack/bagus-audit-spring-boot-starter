@@ -16,6 +16,22 @@
         { "requestParam": "client_id", "match": "other-app",
           "claims": { "sub": "other-app", "aud": ["billing-api"], "roles": ["AUDIT_ADMIN"], "tenant_id": "acme" } }
       ]
+    },
+    {
+      "issuerId": "auth0",
+      "tokenExpiry": 3600,
+      "requestMappings": [
+        { "requestParam": "client_id", "match": "admin-acme",
+          "claims": { "sub": "admin-acme", "aud": ["audit-api"], "https://app.example.com/roles": ["AUDIT_ADMIN"], "https://app.example.com/tenant": "acme" } },
+        { "requestParam": "client_id", "match": "writer-acme",
+          "claims": { "sub": "writer-acme", "aud": ["audit-api"], "https://app.example.com/roles": ["AUDIT_WRITE"], "https://app.example.com/tenant": "acme" } },
+        { "requestParam": "client_id", "match": "reader-acme",
+          "claims": { "sub": "reader-acme", "aud": ["audit-api"], "https://app.example.com/roles": ["AUDIT_READ"], "https://app.example.com/tenant": "acme" } },
+        { "requestParam": "client_id", "match": "reader-globex",
+          "claims": { "sub": "reader-globex", "aud": ["audit-api"], "https://app.example.com/roles": ["AUDIT_READ"], "https://app.example.com/tenant": "globex" } },
+        { "requestParam": "client_id", "match": "other-app",
+          "claims": { "sub": "other-app", "aud": ["billing-api"], "https://app.example.com/roles": ["AUDIT_ADMIN"], "https://app.example.com/tenant": "acme" } }
+      ]
     }
   ]
 }
