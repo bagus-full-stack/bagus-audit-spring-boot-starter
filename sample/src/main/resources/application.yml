@@ -70,7 +70,7 @@ spring:
     username: ${DATABASE_USERNAME}
     password: ${DATABASE_PASSWORD}
     hikari:
-      maximum-pool-size: 10
+      maximum-pool-size: 30
       connection-timeout: 30000
 
   jpa:
