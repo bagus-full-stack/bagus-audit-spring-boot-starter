@@ -11,7 +11,7 @@ package io.github.assami.audit.tenancy;
  */
 public final class TenantContext {
 
-    private static final ThreadLocal<String> TENANT = new InheritableThreadLocal<>();
+    private static final ThreadLocal<String> TENANT = new ThreadLocal<>(); // not inheritable: a pooled thread created mid-request would keep that tenant for good
 
     private TenantContext() {}
 

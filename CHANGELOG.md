@@ -8,6 +8,10 @@ Versioning follows [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Fixed
+- A host application's own Spring Data repositories were no longer found: the starter's `@EnableJpaRepositories` switched Boot's repository scan off. The audit package is now added to Boot's scan instead
+- The tenant id was kept in an `InheritableThreadLocal`, so a pooled thread created during one tenant's request kept that tenant for later tasks. It is now a plain `ThreadLocal`
+
 ## [1.0.0] — 2026-10-21
 
 First release. The sections after the feature list record what changed while the code was hardened before publishing.

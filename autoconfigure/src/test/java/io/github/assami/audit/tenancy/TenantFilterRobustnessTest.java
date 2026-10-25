@@ -216,4 +216,15 @@ class TenantFilterRobustnessTest {
 
         assertThat(seen.get()).isNull();
     }
+
+    @Test
+    void tenantContext_isNotInheritedByThreadsStartedWhileSet() throws Exception {
+        TenantContext.set("acme");
+        AtomicReference<String> seen = new AtomicReference<>("unset");
+        Thread t = new Thread(() -> seen.set(TenantContext.get()));
+        t.start();
+        t.join();
+
+        assertThat(seen.get()).isNull();
+    }
 }
