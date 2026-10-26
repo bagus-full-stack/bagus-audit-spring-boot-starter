@@ -6,7 +6,7 @@ Storage is pluggable (JPA, or an in-memory fallback for development).
 
 - Java 17 or newer, Spring Boot 3.3.4
 - Apache License 2.0
-- Status: `1.0.0-SNAPSHOT`, not yet published to Maven Central (see [Status](#status-and-known-limits))
+- Status: `1.0.0`, published on Maven Central (see [Status](#status-and-known-limits))
 
 ## Contents
 
@@ -54,23 +54,17 @@ Maven coordinates (group `io.github.bagus-full-stack`): `audit-starter`, `audit-
 
 ## Quick start
 
-The project is not on Maven Central yet. Install it into your local repository first:
-
-```bash
-git clone https://github.com/bagus-full-stack/bagus-audit-spring-boot-starter.git
-cd bagus-audit-spring-boot-starter
-./mvnw install
-```
-
-Then add the starter to your application:
+Add the starter to your application. It is on Maven Central, no extra repository is needed:
 
 ```xml
 <dependency>
   <groupId>io.github.bagus-full-stack</groupId>
   <artifactId>audit-starter-jpa</artifactId>
-  <version>1.0.0-SNAPSHOT</version>
+  <version>1.0.0</version>
 </dependency>
 ```
+
+To build it from source instead: `git clone https://github.com/bagus-full-stack/bagus-audit-spring-boot-starter.git`, then `./mvnw install`.
 
 Minimal `application.yml`:
 
@@ -345,7 +339,7 @@ curl -s -X POST localhost:8081/default/token -d 'grant_type=client_credentials&c
 
 ## Status and known limits
 
-- Version is `1.0.0-SNAPSHOT`; the API may still change.
+- Version is `1.0.0`, on Maven Central; the API may still change.
 - Tested: H2 and PostgreSQL 16 (Testcontainers), a mock OAuth2 server and Keycloak 26, Auth0-style claims, two instances on one database, the JVM image and the GraalVM
   native image (`docker build --target runtime-native .`, 28/28 smoke checks), and a k6 load run (200 req/s, p95 about
   400 ms, one container, 2M rows). Not tested: more than two instances, a provider other than Keycloak and Auth0-style claims, the audit assistant in a native image, a model provider other than Ollama.
@@ -401,15 +395,11 @@ The repository itself stays on `X.Y.Z-SNAPSHOT`; only the CI build sees the rele
 A published version can never be changed or deleted from Central. If the upload is wrong, drop the deployment in the
 portal before publishing and tag again with a new version.
 
-### What was checked, and what was not
+### What the first release showed
 
-Checked locally: the `release` profile builds sources and javadoc jars for the three libraries, excludes the sample,
-produces a bundle of the four expected components, and signs every file (tested with a throwaway key on Linux).
-That check was done before `audit-starter-ai` existed. The module is set up the same way, but its part of the bundle
-was not checked.
+Version 1.0.0 was the real test of the setup above. The upload, the namespace check and the signature (public key on `keyserver.ubuntu.com`) all passed. The deployment holds five artifacts; the portal lists the parent twice (as `pom` and untyped), so it shows six components. `audit-sample` is not in it.
 
-Not checked: the upload itself, the namespace verification and the real key server, because they need your accounts.
-The first tag is the real test.
+Two failures to know: `gpg: no default secret key` means the secret `GPG_PRIVATE_KEY` is missing or empty, and `Status: 401` on the upload means `CENTRAL_USERNAME` or `CENTRAL_PASSWORD` is not the generated user token.
 
 ## Changelog
 
